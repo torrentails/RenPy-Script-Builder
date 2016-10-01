@@ -1,5 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
+"""
+Ren'Py Script Builder takes an input script file and generates
+a Ren'Py v6.99.11 compatible .rpy file.
+
+Usage: "python rpsb.py input-file [-o output-dir]"
+use "--help" for more info.
+"""
+
+__version__ = "0.4.6"
+__author__ = "Nathan Sullivan"
+__email__ = "contact@torrentails.com"
+__license__ = "MIT"
+
 import os, sys, getopt, re, time, types, atexit
 
 try:
