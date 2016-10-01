@@ -1,5 +1,5 @@
 :config:
-    output_path = ./scripts
+    output_path = ./output
     create_flow_control_file = False
 
 :l >> {+} = scene {}\nwith time_skip_transition

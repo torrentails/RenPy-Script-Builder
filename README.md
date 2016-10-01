@@ -1,20 +1,20 @@
-Ren'py script builder
+Ren'Py script builder
 =====================
 
 Introduction
 ------------
 
-The Ren'py script builder was formed out a desire almost entirely to not have to type "" on every damn line!
-Most of the ideas pretty much grew from that and having to work around writing scripts without quotation marks while still maintaining the basic level of flexibility that Ren'py offers.
+The Ren'Py script builder was formed out a desire almost entirely to not have to type "" on every damn line!
+Most of the ideas pretty much grew from that and having to work around writing scripts without quotation marks while still maintaining the basic level of flexibility that Ren'Py offers.
 
-The builder will take more manageable, human readable/writable script file(s) and turn them into something Ren'py can understand. Not that Ren'py scripts aren't human readable, but the goal is simply to cut down on some of the tediousness of writing dialogue and narration in the format that Ren'py requires.
+The builder will take more manageable, human readable/writeable script file(s) and turn them into something Ren'Py can understand. Not that Ren'Py scripts aren't human readable, but the goal is simply to cut down on some of the tediousness of writing dialogue and narration in the format that Ren'Py requires.
 
 Please keep in mind that this tool is only intended to help speed up the actual _script_ part of your game (the dialogue and narration and stuff). You should still do the more programming intensive stuff, such as init and gui programming in pure rpy.
 
 Table of Contents
 -----------------
 
-- [Ren'py script builder](#renpy-script-builder)
+- [Ren'Py script builder](#renpy-script-builder)
   - [Introduction](#introduction)
   - [Table of Contents](#table-of-contents)
   - [Usage](#usage)
@@ -43,11 +43,10 @@ Table of Contents
     - [Wildcards](#wildcards)
     - [Config Options](#config-options)
     - [Log Levels](#log-levels-1)
-  - [Example](#example)
 
 Usage
 -----
-To convert a script file into a .rpy file(s), download the ***rpsb.py*** file to the location of your choice then start up a cmd or bash shell in that directory then run `python rpsb.py input-file` where `input-file` is the path to the file that you wish to convert.
+To convert a .rps script file into a Ren'Py v6.99.11 compatible .rpy file(s), download the ***rpsb.py*** file to the location of your choice then start up a cmd or bash shell in that directory then run `python rpsb.py input-file` where `input-file` is the path to the file that you wish to convert.
 
 The file(s) will be output in a location relative to the source document (by default, this will be in the same directory as the input file's path). This can be changed by setting `output_path` (see [Configuration](#configuration)).
 
@@ -68,7 +67,7 @@ Comments
 --------
 
 Any line beginning with a `#` is treated as a comment and is skipped over during parsing.
-**Note:** Unlike python, the `#` is not treaded as a comment when it appears in the midle of a line. It must be at the beginning of the line to be treated as such.
+**Note:** Unlike python, the `#` is not treated as a comment when it appears in the middle of a line. It must be at the beginning of the line to be treated as such.
 
 By default, only lines starting with `##` are copied to the output and all other comments are simply ignored.
 See [Configuration](#configuration)
@@ -116,7 +115,7 @@ These commands focus on replacing certain elements in each line.
 
     Example:
     `:l tr_fade = with Fade(0.33)` will look for lines that consist only of `tr_fade` and replace that line with `with Fade(0.33)` in the output.
-- `:p find = replace` defines a prefix replacement. The interpreter scanst the ginning of the line, looking for `find` followed by a space and replaces it with `replace`.
+- `:p find = replace` defines a prefix replacement. The interpreter scans the beginning of the line, looking for `find` followed by a space and replaces it with `replace`.
     Use this for character prefixes on spoken script lines.
 
     Example:
@@ -176,7 +175,7 @@ with Dissolve(0.75)
 
 Substitutions will match in order, so `:l foo{*}bar{*} = $ some_func({},{})` will substitute the first parameter with the match following `foo` and the second parameter will be substituted with the match following `bar`
 
-You can control this behavior by using numbered substitutions in the replacement string `{n}` where `n` is the match group.
+You can control this behaviour by using numbered substitutions in the replacement string `{n}` where `n` is the match group.
 Using the above example `:l foo{*}bar{*} = $ some_func({0},{1})` now substitutes the first parameter with the match following bar and the second with the match following foo.
 **Note:** Substitutions are zero indexed as in python, so `{0}` is the first match, `{1]` is the second and so on.
 
@@ -226,7 +225,7 @@ label parent1.sub2
     "This label is listed under parent1 again"
 ```
 
-**Note:** The label command doesn't need to open a new block with a trailing `:` and it is optional to include it or not if you find the layout better. If you do include the trailing `:` then the following lines must be indented as a block. The output will be the same regardless if you use labels as block openers or not and you can mis and match.
+**Note:** The label command doesn't need to open a new block with a trailing `:` and it is optional to include it or not if you find the layout better. If you do include the trailing `:` then the following lines must be indented as a block. The output will be the same regardless if you use labels as block openers or not and you can mix and match.
 
 ```html
 ::non-block
@@ -264,7 +263,7 @@ Transitions can easily be done also using `:w transition` where `transition` is 
 :r
 ```
 
-Having labels is all well and good, but a large part of Ren'py is being able to move control from one place to the next.
+Having labels is all well and good, but a large part of Ren'Py is being able to move control from one place to the next.
 This is typically done in two ways: the `jump` keyword and the `call` keyword.
 
 In your script, these are replaced by `:j` and `:c` respectfully and otherwise operate the same way.
@@ -277,9 +276,9 @@ When calling another label though, it is expected to `return` at the end of the 
 :m:
 ```
 
-Choices are an important part of almost any visual novel and in Ren'py this is accomplished through the `menu:` keyword.
+Choices are an important part of almost any visual novel and in Ren'Py this is accomplished through the `menu:` keyword.
 
-The choice dialogue is crafted in the same way as in Ren'py using `:m`
+The choice dialogue is crafted in the same way as in Ren'Py using `:m`
 ```html
 :m:
 	d: This is a bit of dialogue accompanying the choice
@@ -306,7 +305,7 @@ menu:
 :else:
 ```
 
-If, elif and else are used in exactly the same way as in Ren'py but must be prefixed with a `:`.
+If, elif and else are used in exactly the same way as in Ren'Py but must be prefixed with a `:`.
 
 ### NVL
 
@@ -383,9 +382,9 @@ The `:break` command can be used to cease execution of the script builder at tha
 Special Characters
 ------------------
 
-The interpreter respects a few special characters from Ren'py:
+The interpreter respects a few special characters from Ren'Py:
 
-+ `$` placed at the beginning of a line, treats that line a python line just as Ren'py does and simply copies the line directly to the output.
++ `$` placed at the beginning of a line, treats that line a python line just as Ren'Py does and simply copies the line directly to the output.
 + `#` begins a comment and is ignored during parsing.
   You can force the interpreter to copy comments to the output by setting `copy_comments` to `True`
   By default, a line starting with `##` _will_ be copied over, regardless of the `copy_comments` setting.
@@ -403,7 +402,7 @@ Configuration
 Some things can be configured about the script interpreter itself. This is done through the use of the `:config opt = val` command where `opt` is the configuration option to change and `val` is the new value.
 You can also use `:config:` as a block to set multiple configuration options at once.
 
-Although you can change configuration option at any point in the source script, and may be occasionally desirable to do so, it is often wisest to do all configuration at the very beginning of the script to avoid unexpected behavior.
+Although you can change configuration option at any point in the source script, and may be occasionally desirable to do so, it is often wisest to do all configuration at the very beginning of the script to avoid unexpected behaviour.
 
 ### List of Config Options
 
