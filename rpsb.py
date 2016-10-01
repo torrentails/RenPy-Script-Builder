@@ -3,10 +3,10 @@
 
 """
 Ren'Py Script Builder takes an input script file and generates
-a Ren'Py v6.99.11 compatible .rpy file.
+a Ren'Py v6.99.11 compatible .rpy file(s).
 
 Usage: "python rpsb.py input-file [-o output-dir]"
-use "--help" for more info.
+Use "--help" for more info.
 """
 
 __version__ = "0.4.6"
@@ -809,6 +809,7 @@ def fix_brace(matchobj):
 
 empty_line_re = re.compile("^\s*$")
 comment_re = re.compile("^(\s*)#(.*)$")
+python_re = re.compile("^(\$.*)$")
 command_re = re.compile("^:(.*)$")
 label_or_nvl_re = re.compile("^:(:.*?|nvl):?$")
 def parse_line(line):
@@ -830,7 +831,7 @@ def parse_line(line):
         return
 
     indentinator(len(line) - len(line.lstrip()))
-    line = line.strip().replace('"', r'\"')
+    line = line.strip()
 
     log("Checking for indentation errors", LOGLEVEL.VERB)
     if _f["new_indent"]:
@@ -843,29 +844,34 @@ def parse_line(line):
     _f["prev_indent"] = _f["cur_indent"]
 
     log("Checking for new indent", LOGLEVEL.VERB)
-    # if
     if line[-1] == ':':
         log("New indent is now expected", LOGLEVEL.VERB)
         _f["new_indent"] = 1
     else:
-        # print 'new indent = False'
         _f["new_indent"] = 0
 
     # Inside command block
     if _f["command_block"]:
-        parse_command_block(line)
+        parse_command_block(line.replace('"', r'\"'))
         return
 
-    log("Checking for command", LOGLEVEL.VERB)
+    # $ starting python lines
+    _m = python_re.match()
+    if _m:
+        write_line(_m.group(1))
+
+    line = line.replace('"', r'\"')
+
     # Commands
+    log("Checking for command", LOGLEVEL.VERB)
     for i in range(len(command_list)):
         _m = command_list[i].match(line)
         if _m:
             parse_command(_m.group(1), _m.groups()[0:], command_list[i-1])
             return
 
-    log("Checking for line replacement", LOGLEVEL.VERB)
     # Line replacement
+    log("Checking for line replacement", LOGLEVEL.VERB)
     for k, v in state["known_line_rep"].items():
         _m = k.match(line)
         if _m:
@@ -880,8 +886,8 @@ def parse_line(line):
                     v, _m.groups()), LOGLEVEL.ERROR)
             return
 
-    log("Checking for prefix replacement", LOGLEVEL.VERB)
     # Prefix Replacement
+    log("Checking for prefix replacement", LOGLEVEL.VERB)
     for k, v in state["known_prefix_rep"].items():
         _m = k.match(line)
         if _m:
@@ -902,8 +908,8 @@ def parse_line(line):
                     v[0], _m.groups()), LOGLEVEL.ERROR)
             return
 
-    log("Checking for unknown command", LOGLEVEL.VERB)
     # Unknown command
+    log("Checking for unknown command", LOGLEVEL.VERB)
     _m = command_re.match(line)
     if _m:
         # TODO: implement unknow command outputs

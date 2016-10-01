@@ -15,7 +15,7 @@ Please keep in mind that this tool is only intended to help speed up the actual 
 
 Usage
 -----
-To convert a script file into a .rpy file(s), download the rpy_script_builder.py file to the location of your choice then start up a cmd or bash shell in that directory then run `python rpy_script_builder.py file_name` where `file_name` is the path to the file that you wish to convert.
+To convert a script file into a .rpy file(s), download the ***rpsb.py*** file to the location of your choice then start up a cmd or bash shell in that directory then run `python rpsb.py input-file` where `input-file` is the path to the file that you wish to convert.
 
 The file(s) will be output in a location relative to the source document (by default, this will be in the same directory as the input file's path). This can be changed by setting `output_path` (see [Configuration](#configuration)).
 
@@ -58,10 +58,10 @@ You can use this output pure code into the output file.
 
 ```python
 :init python:
-    chars = ["Sarah", "George"]
-    new_chars = []
-    for char in chars:
-        new_chars.append(char + "_happy")
+  chars = ["Sarah", "George"]
+  new_chars = []
+  for char in chars:
+    new_chars.append(char + "_happy")
 ```
 
 ### Line and Prefix Replacement {#replacement}
@@ -71,11 +71,11 @@ You can use this output pure code into the output file.
 :p find_prefix = replace
 
 :l:
-    find = replace
-    ...
+  find = replace
+  ...
 :p:
-    find_prefix = replace
-    ...
+  find_prefix = replace
+  ...
 ```
 
 These commands focus on replacing certain elements in each line.
@@ -116,9 +116,9 @@ with dissolve
 Substitutions are quite flexible and can even be used to create new commands and/or replace otherwise odd strings.
 ```html
 :l:
-    :dance = $ dance_func()
-    >> {+} = scene {}{n}with time_skip_short
-    >>> {+} = scene {}{n}with time_skip_long
+  :dance = $ dance_func()
+  >> {+} = scene {}{n}with time_skip_short
+  >>> {+} = scene {}{n}with time_skip_long
 ```
 
 #### Wild card Matches and Regex {#wildcards}
@@ -250,20 +250,20 @@ Choices are an important part of almost any visual novel and in Ren'py this is a
 The choice dialogue is crafted in the same way as in Ren'py using `:m`
 ```html
 :m:
-    d: This is a bit of dialogue accompanying the choice
-    This is the first choice:
-        :c choice1
-    This is the second choice:
-        :c choice2
+  d: This is a bit of dialogue accompanying the choice
+  This is the first choice:
+    :c choice1
+  This is the second choice:
+    :c choice2
 ```
 becomes
 ```python
 menu:
-    DAVID "This is a bit of dialogue accompanying the choice"
-    "This is the first choice":
-        call choice1
-    "This is the second choice":
-        call choice2
+  DAVID "This is a bit of dialogue accompanying the choice"
+  "This is the first choice":
+    call choice1
+  "This is the second choice":
+    call choice2
 ```
 
 ### if, elif and else {#if-else}
@@ -364,8 +364,8 @@ Configuration
 ```html
 :config option = value
 :config:
-    option = value
-    ...
+  option = value
+  ...
 ```
 
 Some things can be configured about the script interpreter itself. This is done through the use of the `:config opt = val` command where `opt` is the configuration option to change and `val` is the new value.
@@ -475,7 +475,7 @@ Syntax Reference {#syntax}
 Example
 -------
 
-Input file: ./sample.script
+Input file: my_vn_game/main.script
 ```html
 :config:
     output_path = ./scripts
@@ -550,7 +550,7 @@ Input file: ./sample.script
     :r
 
 ```
-Output file: ./scripts/sample.rpy
+Output file: my_vn_game/scripts_out/main.rpy
 ```python
 ## This comment will though.
 
