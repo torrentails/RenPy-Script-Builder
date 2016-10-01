@@ -11,36 +11,38 @@ The builder will take more manageable, human readable/writable script file(s) an
 
 Please keep in mind that this tool is only intended to help speed up the actual _script_ part of your game (the dialogue and narration and stuff). You should still do the more programming intensive stuff, such as init and gui programming in pure rpy.
 
-**Table of Contents**
+Table of Contents
+-----------------
 
 - [Ren'py script builder](#renpy-script-builder)
   - [Introduction](#introduction)
+  - [Table of Contents](#table-of-contents)
   - [Usage](#usage)
   - [What it Does](#what-it-does)
   - [Comments](#comments)
   - [Blocks](#blocks)
   - [Commands](#commands)
-    - [Line and Prefix Replacement](#replacement)
-      - [Wild card Matches and Regex](#regex)
+    - [Line and Prefix Replacement](#line-and-prefix-replacement)
+      - [Wild card Matches and Regex](#wild-card-matches-and-regex)
     - [Labels](#labels)
-    - [Scene, Show and With](#scene-show-with)
+    - [Scene, Show and With](#scene-show-and-with)
     - [Flow control](#flow-control)
     - [Choices](#choices)
-    - [if, elif and else](#if-else)
+    - [if, elif and else](#if-elif-and-else)
     - [NVL](#nvl)
     - [Import](#import)
     - [File](#file)
     - [Logging](#logging)
       - [Log Levels](#log-levels)
-  - [Special Characters](#special)
+  - [Special Characters](#special-characters)
   - [Configuration](#configuration)
-    - [List of Config Options](#config-list)
-  - [Syntax Reference](#syntax)
-    - [Comments](#ref-comments)
-    - [Commands](#ref-commands)
-    - [Wildcards](#ref-wildcards)
-    - [Config Options](#ref-config)
-    - [Log Levels](#ref-log-levels)
+    - [List of Config Options](#list-of-config-options)
+  - [Syntax Reference](#syntax-reference)
+    - [Comments](#comments-1)
+    - [Commands](#commands-1)
+    - [Wildcards](#wildcards)
+    - [Config Options](#config-options)
+    - [Log Levels](#log-levels-1)
   - [Example](#example)
 
 Usage
@@ -57,10 +59,10 @@ the builder takes the input file and goes over it, reading each line and decidin
 + Empty lines are ignored.
 + Any line starting with a `#` is a [comment](#comments) and is ignored.
 + If the line starts with a `:` it is interpreted as a [command](#commands).
-  + If the command is a known command or matches a [line replacement](#replacement) then it is interpreted and output.
+  + If the command is a known command or matches a [line replacement](#line-and-prefix-replacement) then it is interpreted and output.
   + Otherwise, the command (and any block it opens) is copied verbatim, sans the leading `:`.
 + A line starting with any of the [special characters](#special) are treated accordingly.
-+ Finally, if a line doesn't match any of the above requirements, it is first checked for any [prefix replacements](#replacement). Any portion of the line that isn't prefix replaced is wrapped in quotes (first escaping any pre-exiting quotes to preserve them) and output.
++ Finally, if a line doesn't match any of the above requirements, it is first checked for any [prefix replacements](#line-and-prefix-replacement). Any portion of the line that isn't prefix replaced is wrapped in quotes (first escaping any pre-exiting quotes to preserve them) and output.
 
 Comments
 --------
@@ -86,26 +88,26 @@ The command is between the the `:` and the first space or trailing `:`
 Any command not recognized by the interpreter is simply transposed as is into the output file, sans the leading `:`. Any block that is opened by this unknown command is also transposed as is.
 You can use this output pure code into the output file.
 
-```python
+```renpy
 :init python:
-    chars = ["Sarah", "George"]
-    new_chars = []
-    for char in chars:
-        new_chars.append(char + "_happy")
+	chars = ["Sarah", "George"]
+	new_chars = []
+	for char in chars:
+		new_chars.append(char + "_happy")
 ```
 
-### Line and Prefix Replacement {#replacement}
+### Line and Prefix Replacement
 
 ```html
 :l find = replace
 :p find_prefix = replace
 
 :l:
-    find = replace
-    ...
+	find = replace
+	...
 :p:
-    find_prefix = replace
-    ...
+	find_prefix = replace
+	...
 ```
 
 These commands focus on replacing certain elements in each line.
@@ -138,7 +140,7 @@ You can specify multi-line replacements using `{n}`
 :l dorm = scene bg dorm{n}with dissolve
 ```
 becomes
-```python
+```renpy
 scene bg dorm
 with dissolve
 ```
@@ -146,12 +148,12 @@ with dissolve
 Substitutions are quite flexible and can even be used to create new commands and/or replace otherwise odd strings.
 ```html
 :l:
-    :dance = $ dance_func()
-    >> {+} = scene {}{n}with time_skip_short
-    >>> {+} = scene {}{n}with time_skip_long
+	:dance = $ dance_func()
+	>> {+} = scene {}{n}with time_skip_short
+	>>> {+} = scene {}{n}with time_skip_long
 ```
 
-#### Wild card Matches and Regex {#regex}
+#### Wild card Matches and Regex
 
 Wild cards can be used to match slightly varying strings.
 
@@ -168,7 +170,7 @@ You can use `{}` to capture a wild card match and substitute it into the output 
 dis(0.75)
 ```
 becomes
-```python
+```renpy
 with Dissolve(0.75)
 ```
 
@@ -208,7 +210,7 @@ This is part of parent2
 This label is listed under parent1 again
 ```
 becomes
-```python
+```renpy
 label parent1
     label .sub1
         "This sub1 label is grouped under parent1"
@@ -237,7 +239,7 @@ The label here doesn't open a block and so this line shouldn't be indented.
     Just as long as you maintain correct indenting.
 ```
 
-### Scene, Show and With {#scene-show-with}
+### Scene, Show and With
 
 ```html
 :sc scene_name
@@ -280,23 +282,23 @@ Choices are an important part of almost any visual novel and in Ren'py this is a
 The choice dialogue is crafted in the same way as in Ren'py using `:m`
 ```html
 :m:
-    d: This is a bit of dialogue accompanying the choice
-    This is the first choice:
-        :c choice1
-    This is the second choice:
-        :c choice2
+	d: This is a bit of dialogue accompanying the choice
+	This is the first choice:
+		:c choice1
+	This is the second choice:
+		:c choice2
 ```
 becomes
-```python
+```renpy
 menu:
-    DAVID "This is a bit of dialogue accompanying the choice"
-    "This is the first choice":
-        call choice1
-    "This is the second choice":
-        call choice2
+	DAVID "This is a bit of dialogue accompanying the choice"
+	"This is the first choice":
+		call choice1
+	"This is the second choice":
+		call choice2
 ```
 
-### if, elif and else {#if-else}
+### if, elif and else
 
 ```html
 :if condition:
@@ -323,7 +325,7 @@ If, elif and else are used in exactly the same way as in Ren'py but must be pref
     a: It sure is!
 ```
 will become:
-```python
+```renpy
 NVL "This is an NVL block of text."
 NVL "As opposed to the typical ADV style that most script lines are read as."
 Annie_NVL "It sure is!"
@@ -378,7 +380,7 @@ The `:break` command can be used to cease execution of the script builder at tha
 | `3` | WARNING       |
 | `4` | ERROR         |
 
-Special Characters {#special}
+Special Characters
 ------------------
 
 The interpreter respects a few special characters from Ren'py:
@@ -394,8 +396,8 @@ Configuration
 ```html
 :config option = value
 :config:
-    option = value
-    ...
+	option = value
+	...
 ```
 
 Some things can be configured about the script interpreter itself. This is done through the use of the `:config opt = val` command where `opt` is the configuration option to change and `val` is the new value.
@@ -403,7 +405,7 @@ You can also use `:config:` as a block to set multiple configuration options at 
 
 Although you can change configuration option at any point in the source script, and may be occasionally desirable to do so, it is often wisest to do all configuration at the very beginning of the script to avoid unexpected behavior.
 
-### List of Config Options {#config-list}
+### List of Config Options
 
 The following are the available configuration options and their associated default values.
 
@@ -413,7 +415,7 @@ The following are the available configuration options and their associated defau
 + `create_flow_control_file = True`
   When set to `True` a master flow control file will be created, which will call each label in the order that they appear, respecting the `flow_control_ignore` list. Set this to `False` if you want to do this manually.
 + `flow_control_ignore = ["*.choice*", "*_ignore*"]`
-  A list of label names to ignore when generating the master flow control file. Regex like matches can be used as defined in the section [Wild card Matches](#regex).
+  A list of label names to ignore when generating the master flow control file. Regex like matches can be used as defined in the section [Wild card Matches](#wild-card-matches-and-regex).
 + `copy_comments = False`
   When set to `True` comments in the source document will be copied as is to the output.
 + `copy_special_comments = "#"`
@@ -428,17 +430,17 @@ The following are the available configuration options and their associated defau
 + `output_path = "."`
   Set the relative or absolute output path for the generated script files. The default `"."` will create the files in the same location as your script file.
 
-Syntax Reference {#syntax}
+Syntax Reference
 ----------------
 
-### Comments {#ref-comments}
+### Comments
 
 | key | Definition |
 |:--- |:---------- |
 | `#` | Comment |
 | `##` | Comment (copied to output) |
 
-### Commands {#ref-commands}
+### Commands
 
 | key | Definition |
 |:--- |:---------- |
@@ -468,7 +470,7 @@ Syntax Reference {#syntax}
 | `:config:` | Set multiple config options at once |
 | `:UNKNOWN` | Unknown commands (and any blocks they open) are output as is |
 
-### Wildcards {#ref-wildcards}
+### Wildcards
 
 | key | Definition |
 |:---:|:---------- |
@@ -478,7 +480,7 @@ Syntax Reference {#syntax}
 | `{}` | Captures match for replacement in the output string |
 | `\` | Escape wildcard characters |
 
-### Config Options {#ref-config}
+### Config Options
 
 | key | Default | Definition |
 |:--- |:------- |:---------- |
@@ -492,7 +494,7 @@ Syntax Reference {#syntax}
 |`nvl_suffix`|`"_NVL"`|The suffix applied to character names during NVL blocks|
 |`output_path`|`"."`|The output path for generated files|
 
-### Log Levels {#ref-log-levels}
+### Log Levels
 
 | int | Logging Level |
 |:---:|:------------- |
@@ -501,147 +503,3 @@ Syntax Reference {#syntax}
 | `2` | INFO          |
 | `3` | WARNING       |
 | `4` | ERROR         |
-
-Example
--------
-
-Input file: my_vn_game/main.script
-```html
-:config:
-    output_path = ./scripts
-    create_flow_control_file = False
-
-:l >> {+} = scene {}\nwith time_skip_transition
-
-:p:
-    a: = ADAM
-    b: = BETH
-    c: = CHARLES
-
-# This is a comment, and won't be written to the output.
-## This comment will though.
-
-::Act_1
-::.scene_01:
-    :sc tiny_office
-    :w Fade(1.25)
-    The rain fell heavy on the window as I worked.
-    a: I think I need a break.
-    I leaned back in my chair, the monitor glowing softly in font of me.
-    Suddenly I heard a knock at the door to my tiny office.
-    a: Come in. The door's unlocked.
-    I turned to face the wooden door as it opened, revealing a familiar face.
-    b: Hi Adam, how's the script going?
-    a: It's going well, I've made some great progress!
-    a: I'm just taking a bit of break at the moment.
-    Beth smiled cheekily. Something was up.
-    b: Well if you're not busy, perhaps you'd like to meet someone?
-    b: You'll like him, I'm sure!
-    a: *sigh* Sure, I don't see why not.
-    I got up and grabbed my jacket and headed out the door with the waiting Beth.
-    :r
-
-::.scene_02:
-    >> office_reception
-    Standing before me is man in a sharp suit.
-    He almost looks out of place amongst the small, casually dressed team we have.
-    Upon seeing me, he extends a hand which I take.
-    His grasp is firm as he give my had a shake.
-    c: The name's Charles!
-    c: I work for Big Name Publishings and we're very interested in the work you and your team have done making visual novels.
-
-    :m:
-        c: We'd like to offer you a lucrative publishing deal for your upcoming games.
-        Accept the offer:
-            :j .accept
-        Reject him:
-            :j .reject
-
-::.accept:
-    An opportunity like this only comes around once in a life time!
-    a: I'm honoured, of course we'd all be happy to!
-    b: See, I told you you'd like him!
-    >> success
-    We accepted their deal and became a big name in the industry.
-    We decided to all take a big holiday in Japan to celebrate.
-    THE END
-    :r
-
-::.reject:
-    This deal would just mean loss of our creative freedom that we've become known for.
-    a: Thank you Charles for the offer...
-    a: But we pride ourselves on our independence and creative freedom.
-    a: So I'm going to have to turn you down, sorry.
-    c: I completely understand, thank you for your time.
-    b: Aw, I really though this would work.
-    >> great_games
-    Despite not having a lot of budget for our small studio, by sticking to our values we produced many fine games!
-    THE END
-    :r
-
-```
-Output file: my_vn_game/scripts_out/main.rpy
-```python
-## This comment will though.
-
-label Act_1:
-label .scene_01:
-    scene tiny_office
-    with Fade(1.25)
-    "The rain fell heavy on the window as I worked."
-    ADAM "I think I need a break."
-    "I leaned back in my chair, the monitor glowing softly in font of me."
-    "Suddenly I heard a knock at the door to my tiny office."
-    ADAM "Come in. The door's unlocked."
-    "I turned to face the wooden door as it opened, revealing a familiar face."
-    BETH "Hi Adam, how's the script going?"
-    ADAM "It's going well, I've made some great progress!"
-    ADAM "I'm just taking a bit of break at the moment."
-    "Beth smiled cheekily. Something was up."
-    BETH "Well if you're not busy, perhaps you'd like to meet someone?"
-    BETH "You'll like him, I'm sure!"
-    ADAM "*sigh* Sure, I don't see why not."
-    "I got up and grabbed my jacket and headed out the door with the waiting Beth."
-    return
-
-label .scene_02:
-    scene office_reception
-    with time_skip_transition
-    "Standing before me is man in a sharp suit."
-    "He almost looks out of place amongst the small, casually dressed team we have."
-    "Upon seeing me, he extends a hand which I take."
-    "His grasp is firm as he give my had a shake."
-    CHARLES "The name's Charles!"
-    CHARLES "I work for Big Name Publishings and we're very interested in the work you and your team have done making visual novels."
-
-    menu:
-        CHARLES "We'd like to offer you a lucrative publishing deal for your upcoming games."
-        "Accept the offer":
-            jump .accept
-        "Reject him":
-            jump .reject
-
-label .accept:
-    "An opportunity like this only comes around once in a life time!"
-    ADAM "I'm honoured, of course we'd all be happy to!"
-    BETH "See, I told you you'd like him!"
-    scene success
-    with time_skip_transition
-    "We accepted their deal and became a big name in the industry."
-    "We decided to all take a big holiday in Japan to celebrate."
-    "THE END"
-    return
-
-label .reject:
-    "This deal would just mean loss of our creative freedom that we've become known for."
-    ADAM "Thank you Charles for the offer..."
-    ADAM "But we pride ourselves on our independence and creative freedom."
-    ADAM "So I'm going to have to turn you down, sorry."
-    CHARLES "I completely understand, thank you for your time."
-    BETH "Aw, I really though this would work."
-    scene great_games
-    with time_skip_transition
-    "Despite not having a lot of budget for our small studio, by sticking to our values we produced many fine games!"
-    "THE END"
-    return
-```
