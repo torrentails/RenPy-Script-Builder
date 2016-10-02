@@ -485,7 +485,7 @@ Syntax Reference
 |:--- |:------- |:---------- |
 |`create_parent_files`|`False`|If `True`, create files based on parent labels|
 |`create_flow_control_file`|`True`|If `True`, create a master flow control file|
-|`flow_control_ignore`|`["*.choice*", "*_ignore*"]`|A list of label names to ignore when generating the master flow control file.|
+|`flow_control_ignore`|`["*_choice*", "*_ignore*"]`|A list of label names to ignore when generating the master flow control file.|
 |`copy_comments`|`False`|If `True`, copy all comments to the output|
 |`copy_special_comments`|`"#"`|Comments starting with this string, will always be copied to the output. Disabled if set to `None`|
 |`nvl_character`|`"NVL"`|The character used for the NVL narrator|

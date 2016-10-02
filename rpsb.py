@@ -324,7 +324,7 @@ def setup_globals(output_path=None, flush_number=10):
     del _tmp_log
 
     config["flow_control_ignore"] = [
-        re.compile('^'+regex_prep("*.choice*")+'$'),
+        re.compile('^'+regex_prep("*_choice*")+'$'),
         re.compile('^'+regex_prep("*_ignore*")+'$')
     ]
 
@@ -636,12 +636,13 @@ def parse_command(command, matches, _re):
                 log("Adding label call to control file", LOGLEVEL.DEBUG)
                 if not state["control_file"]:
                     state["control_file"] = open_file("control.rpy", 'w')
+                    write_line("label _control_:", False, state["control_file"])
                 if matches[0][0] == '.':
                     # print state["parent_labels"]
-                    write_line("call "+_f["label_chain"][-1]+matches[0],
-                        file=state["control_file"])
+                    write_line("    call "+_f["label_chain"][-1]+matches[0],
+                        False, state["control_file"])
                 else:
-                    write_line("call "+matches[0], file=state["control_file"])
+                    write_line("    call "+matches[0], False, state["control_file"])
 
     # ^:(sc)\s*(\w*)$
     elif command == "sc":
@@ -732,13 +733,21 @@ def parse_command(command, matches, _re):
     # ^:(config)\s*(.*?)=\s?(.*)$
     elif command == "config":
         log("command: Congiguration setting", LOGLEVEL.DEBUG)
-        # print matches
         if matches[0] not in config:
             log("Unknown config option {}".format(matches[0]), LOGLEVEL.ERROR)
-        try:
-            config[matches[0]] = eval(matches[1])
-        except SyntaxError:
-            config[matches[0]] = matches[1]
+
+        if matches[0] == "flow_control_ignore":
+            _l = []
+            print matches[1]
+            for v in eval(matches[1].replace(r'\"', '"')):
+                _l.append(re.compile('^'+regex_prep(v)+'$'))
+            config["flow_control_ignore"] = _l
+
+        else:
+            try:
+                config[matches[0]] = eval(matches[1])
+            except SyntaxError:
+                config[matches[0]] = matches[1]
 
     # ^:(config:)$
     elif command == "config:":
@@ -938,6 +947,8 @@ def parse_line(line):
 
 def cleanup():
     log("Cleaning up", LOGLEVEL.VERB)
+    if state["control_file"]:
+        write_line("return", False, state["control_file"])
     for f in state['open_files']:
         try:
             f.close()
