@@ -856,7 +856,7 @@ def parse_line(line):
         return
 
     # $ starting python lines
-    _m = python_re.match()
+    _m = python_re.match(line)
     if _m:
         write_line(_m.group(1))
 
