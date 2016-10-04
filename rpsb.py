@@ -744,7 +744,7 @@ def parse_command(command, matches, _re):
         if path.isfile(_f) is False:
             log("{} is not an accessible file".format(
                 matches[0]), LOGLEVEL.ERROR)
-        loop_file(in_file)
+        loop_file(_f)
 
     # ^:(file)\s*(.*)$
     elif command == "file":
