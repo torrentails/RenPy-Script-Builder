@@ -9,12 +9,13 @@ Usage: "python rpsb.py input-file [-o output-dir]"
 Use "--help" for more info.
 """
 
+import os, sys, getopt, re, time, types, atexit
+from os import path
+
 __version__ = "0.4.6"
 __author__ = "Nathan Sullivan"
 __email__ = "contact@torrentails.com"
 __license__ = "MIT"
-
-import os, sys, getopt, re, time, types, atexit
 
 try:
     import colorama
@@ -24,11 +25,12 @@ try:
     Style = colorama.Style
 except ImportError:
     class __fake_col__():
-        def __getattr__(*a,**kw):
+        def __getattr__(*a, **kw):
             return ''
     Fore = __fake_col__()
     Back = Fore
     Style = Fore
+
 
 class Colorama_Helper:
     r = Style.RESET_ALL+Fore.WHITE
@@ -46,78 +48,77 @@ class Colorama_Helper:
 _c = Colorama_Helper()
 
 state = {
-    "master_in_file":None,
-    "cur_in_file":None,
-    "cur_out_file":None,
-    "next_out_file":None,
-    "control_file":None,
-    "open_files":set(),
-    "known_line_rep":{},
-    "known_prefix_rep":{},
-    "file_chain":[],
-    "parent_labels":set(),
-    "is_nvl_mode":False,
-    # "next_indent_is_ignored":False
+    "master_in_file": None,
+    "cur_in_file": None,
+    "cur_out_file": None,
+    "next_out_file": None,
+    "control_file": None,
+    "open_files": set(),
+    "known_line_rep": {},
+    "known_prefix_rep": {},
+    "file_chain": [],
+    "parent_labels": set(),
+    "is_nvl_mode": False,
+    # "next_indent_is_ignored": False
 }
 
 config = {
-    "create_parent_files":False,
-    "create_flow_control_file":True,
-    "flow_control_ignore":None,
-    "copy_comments":False,
-    "copy_special_comments":"#",
-    "nvl_character":"NVL",
-    "nvl_prefix":"",
-    "nvl_suffix":"_NVL",
-    "output_path":".",
-    "auto_return":True
+    "create_parent_files": False,
+    "create_flow_control_file": True,
+    "flow_control_ignore": None,
+    "copy_comments": False,
+    "copy_special_comments": "#",
+    "nvl_character": "NVL",
+    "nvl_prefix": "",
+    "nvl_suffix": "_NVL",
+    "output_path": ".",
+    "auto_return": True
 }
 
 stats = {
-    "in_files":0,
-    "out_files":0,
-    "in_lines":0,
-    "out_lines":0,
-    "commands_processed":0,
-    "line_replacements":0,
-    "prefix_replacements":0,
-    "narration_lines":0,
-    "dialogue_lines":0,
-    "start_time":time.time()
+    "in_files": 0,
+    "out_files": 0,
+    "in_lines": 0,
+    "out_lines": 0,
+    "commands_processed": 0,
+    "line_replacements": 0,
+    "prefix_replacements": 0,
+    "narration_lines": 0,
+    "dialogue_lines": 0,
+    "start_time": time.time()
 }
 
 rep_dict1 = {
-    r'\{':'À',
-    r'\}':'Á',
-    r'\*':'Â',
-    r'\+':'Ã',
-    r'\?':'Ä',
-    r'\\':'Å',
-    '.':r'\.',
-    '(':r'\(',
-    ')':r'\)',
-    '[':r'\[',
-    ']':r'\]'
+    r'\{': '\xc0',
+    r'\}': '\xc1',
+    r'\*': '\xc2',
+    r'\+': '\xc3',
+    r'\?': '\xc4',
+    r'\\': '\xc5',
+    '.': r'\.',
+    '(': r'\(',
+    ')': r'\)',
+    '[': r'\[',
+    ']': r'\]'
 }
 rep_dict2 = {
-    '{':'(',
-    '}':')',
-    '*':'.*?',
-    '+':'.+?',
-    '?':'.?',
-    '^':r'\^',
-    '$':r'\$',
-    '|':r'\|',
-    'À':r'\{',
-    'Á':r'\}',
-    'Â':r'\*',
-    'Ã':r'\+',
-    'Ä':r'\?',
-    'Å':r'\\'
+    '{': '(',
+    '}': ')',
+    '*': '.*?',
+    '+': '.+?',
+    '?': '.?',
+    '^': r'\^',
+    '$': r'\$',
+    '|': r'\|',
+    '\xc0': r'\{',
+    '\xc1': r'\}',
+    '\xc2': r'\*',
+    '\xc3': r'\+',
+    '\xc4': r'\?',
+    '\xc5': r'\\'
 }
 
-rep_dict3 = {r'\{':'\xc0', r'\}':'\xc1', '\xc0':'{', '\xc1':'}',}
-    # r'\\':'\xc2', '\xc2':'\\'}
+rep_dict3 = {r'\{': '\xc0', r'\}': '\xc1', '\xc0': '{', '\xc1': '}'}
 
 command_list = [
     re.compile("^:(l)\s+(.*?)\s*=\s*(.*)$"),
@@ -140,11 +141,13 @@ command_list = [
     # re.compile('^:(close)$'),
     re.compile("^:(import)\s+(.*)$"),
     re.compile("^:(file)\s+(.*)$"),
-    re.compile("^:(log)\s+(0|1|2|3|4|VERBOSE|DEBUG|INFO|WARN|WARNING|ERROR)\s+(.*)$"),
+    re.compile("^:(log)\s+(0|1|2|3|4|" \
+               "VERBOSE|DEBUG|INFO|WARN|WARNING|ERROR)\s+(.*)$"),
     re.compile("^:(config)\s+(.*?)\s*=\s*(.*)$"),
     re.compile("^:(config:)$"),
     re.compile("^:(break)$")
 ]
+
 
 class Current_Line_Str(object):
     def __str__(self):
@@ -152,13 +155,16 @@ class Current_Line_Str(object):
             _f = state["file_chain"][-1]
             return "{}|{} ".format(_f["file_name"], _f["cur_line"])
         return '<init> '
+
     def __add__(self, other):
         if issubclass(type(other), str):
             return str(self)+other
+
     def __radd__(self, other):
         if issubclass(type(other), str):
             return other+str(self)
 _ln = Current_Line_Str()
+
 
 class LOGLEVEL:
     ERROR = 4
@@ -173,6 +179,7 @@ class LOGLEVEL:
         return ('VERBOSE', 'DEBUG', 'INFO', 'WARNING', 'ERROR')[i]
 
 LOGLEVEL = LOGLEVEL()
+
 
 class _Logger(object):
 
@@ -189,10 +196,10 @@ class _Logger(object):
 
         # self.log_display_level = self.log_save_level + 1
 
-        self.__log = [] # copy.deepcopy(tmp_log)
+        self.__log = []  # copy.deepcopy(tmp_log)
         self.__log_flush_number = flush_number
         self.__log_count = 0
-        _file, _ = os.path.splitext(os.path.basename(__file__))
+        _file, _ = path.splitext(path.basename(__file__))
         self.__log_file = _file+'.log'
 
         _log = []
@@ -205,7 +212,7 @@ class _Logger(object):
 
             if LOGLEVEL.ERROR > val['level'] >= self.log_display_level:
                 print _c[val['level']]+"[{:<8} {}".format(
-                    LOGLEVEL[val['level']]+']',val['message'])+_c.r
+                    LOGLEVEL[val['level']]+']', val['message'])+_c.r
 
         if _log:
             try:
@@ -223,8 +230,7 @@ class _Logger(object):
 
         cur_time = time.time()
         msg = _ln+str(msg)
-        self.__log.append({'time':cur_time, 'level':level, 'message':msg})
-
+        self.__log.append({'time': cur_time, 'level': level, 'message': msg})
 
         if LOGLEVEL.ERROR > level >= self.log_display_level:
             print _c[level]+"[{:<8} {}".format(LOGLEVEL[level]+']', msg)+_c.r
@@ -259,9 +265,9 @@ class _Logger(object):
         log("Logging statistics", LOGLEVEL.VERB)
         _log = ["Statistics:"]
 
-        def _sts(t):
-            _t = reduce(lambda ll,b : divmod(ll[0],b) + \
-                ll[1:], [(t*1000,),1000,60,60])
+        def _s(t):
+            _t = reduce(lambda ll, b: divmod(ll[0], b) + \
+                ll[1:], [(t*1000,), 1000, 60, 60])
             return "{}:{:0>2}:{:0>2}.{:0>3}".format(*[int(v) for v in _t])
 
         def _pretty_log(key):
@@ -286,7 +292,7 @@ class _Logger(object):
 
         cur_time = cur_time or time.time()
         _run_time = cur_time - stats["start_time"]
-        _log.append("    {:>19} : {}".format("total_run_time", _sts(_run_time)))
+        _log.append("    {:>19} : {}".format("total_run_time", _s(_run_time)))
 
         log('\n'.join(_log))
 
@@ -298,15 +304,18 @@ class _Logger(object):
 _tmp_log = []
 def log(msg, level=LOGLEVEL.INFO, exit=True):
     msg = _ln+msg
-    _tmp_log.append({'time':time.time(), 'level':level, 'message':msg})
+    _tmp_log.append({'time': time.time(), 'level': level, 'message': msg})
     if level >= LOGLEVEL.ERROR:
         if exit:
             sys.exit(_c[level]+"[{:<8} {}".format(LOGLEVEL[level]+']', msg))
         else:
             print _c[level]+"[{:<8} {}".format(LOGLEVEL[level]+']', msg)+_c.r
+
+
 def _close():
     pass
 log.close = _close
+
 
 def setup_globals(output_path=None, flush_number=10):
     global log, _tmp_log
@@ -314,8 +323,8 @@ def setup_globals(output_path=None, flush_number=10):
 
     output_path = output_path or '.'
     _old_output_path = output_path
-    output_path = os.path.expandvars(os.path.expanduser(output_path))
-    if not os.path.isdir(output_path):
+    output_path = path.expandvars(path.expanduser(output_path))
+    if not path.isdir(output_path):
         usage("Invalid output path: {}".format(_old_output_path))
     config["output_path"] = output_path
 
@@ -328,8 +337,10 @@ def setup_globals(output_path=None, flush_number=10):
         re.compile('^'+regex_prep("*_ignore*")+'$')
     ]
 
+
 def regex_prep(string):
     log("Preping string for regex: {}".format(string), LOGLEVEL.VERB)
+
     def _re1(matchobj):
         _m = matchobj.group(0)
         if _m in rep_dict1:
@@ -347,8 +358,11 @@ def regex_prep(string):
             return _m
 
     string = string.strip()
-    _s = re.sub('\\\\{|\\\\}|\\\\\*|\\\\\+|\\\\\?|\.|\(|\)|\[|\]', _re1, string)
-    return re.sub('\{|\}|\*|\+|\?|\^|\$|\||\xc0|\xc1|\xc2|\xc3|\xc4|\xc5', _re2, _s)
+    _s = re.sub('\\\\{|\\\\}|\\\\\*|\\\\\+|'
+                '\\\\\?|\.|\(|\)|\[|\]', _re1, string)
+    return re.sub('\{|\}|\*|\+|\?|\^|\$|\||'
+                  '\xc0|\xc1|\xc2|\xc3|\xc4|\xc5', _re2, _s)
+
 
 def line_regex(match, replace):
     log("Building line replacement regex: {} = {}".format(match,
@@ -358,6 +372,7 @@ def line_regex(match, replace):
     _m = re.compile('^'+_rep+'$')
     state["known_line_rep"][_m] = replace
 
+
 def prefix_regex(match, replace):
     log("Building prefix replacement regex: {} = {}".format(match,
         replace), LOGLEVEL.DEBUG)
@@ -366,11 +381,13 @@ def prefix_regex(match, replace):
     _m = re.compile('^'+_rep+'\s(.*)')
     state["known_prefix_rep"][_m] = (replace, ' "{}"')
 
+
 def total(itter):
     _sum = 0
     for i in itter:
         _sum += len(i)
     return _sum
+
 
 def usage(error=None, exit_code=None):
     log("Printing usage", LOGLEVEL.VERB)
@@ -383,19 +400,20 @@ def usage(error=None, exit_code=None):
     print '::'+("-"*77)
     print '\n  Usage:'
     print '    {} -h|source [-o:dir] [--flush=value]' \
-    ' [--debug|--verbose]\n\n'.format(os.path.basename(__file__))
+          ' [--debug|--verbose]\n\n'.format(path.basename(__file__))
     print "   {:>16} :: Print this help message\n".format('[-h|--help]')
     print "   {:>16} :: Set the output directory to <dir>".format('[-o:<dir>]')
     print "   {:>16} :: NOTE: Output directory may be overwritten by config" \
         .format('[--output=<dir>]')
     print (" "*20)+"::  options set in the source file.\n"
     print "   {:>16} :: Print this help message\n".format('[-h|--help]')
-    print "   {:>16} :: Set the logging level to debug".format('[--debug]')
-    print "   {:>16} :: Set the logging level to verbose.".format('[--verbose]')
+    print "   {:>16} :: Set logging level to debug".format('[--debug]')
+    print "   {:>16} :: Set logging level to verbose.".format('[--verbose]')
     print (" "*20)+":: WARNING: Verbose logging will print a lot of garbage to"
     print (" "*20)+"::  the console and create a very large log file. Only use"
     print (" "*20)+"::  this option if asked to to do so by the developer."
     sys.exit(exit_code)
+
 
 def main(argv):
     global _debug
@@ -444,20 +462,21 @@ def main(argv):
                     LOGLEVEL.WARN)
             else:
                 _debug = 2
-                log("Verbose mode is set. This can severly impact the speed " \
-                    "and performance of the script and may result in a huge " \
+                log("Verbose mode is set. This can severly impact the speed "
+                    "and performance of the script and may result in a huge "
                     "log file.", LOGLEVEL.WARN)
 
-    in_file = os.path.abspath(os.path.expanduser(os.path.expandvars(argv[0])))
+    in_file = path.abspath(path.expanduser(path.expandvars(argv[0])))
 
-    if os.path.isfile(in_file) is False:
+    if path.isfile(in_file) is False:
         log("{} is not an accessible file".format(argv[0]), LOGLEVEL.ERROR)
 
-    os.chdir(os.path.dirname(in_file))
+    os.chdir(path.dirname(in_file))
 
     setup_globals(output_path, _flush)
 
     loop_file(in_file)
+
 
 def loop_file(in_file):
     file = open_file(in_file, "r")
@@ -472,29 +491,30 @@ def loop_file(in_file):
 
     state["file_chain"].pop()
 
+
 def open_file(file_path, mode='w'):
     if mode == 'w':
-        if not os.path.isabs(file_path):
-            _, tail = os.path.split(file_path)
+        if not path.isabs(file_path):
+            _, tail = path.split(file_path)
             if tail == file_path:
-                file_path = os.path.join(config["output_path"], file_path)
+                file_path = path.join(config["output_path"], file_path)
 
-        head, tail = os.path.split(file_path)
+        head, tail = path.split(file_path)
         try:
             os.makedirs(head)
             log("Creating directory {}".format(head), LOGLEVEL.DEBUG)
         except OSError:
             pass
 
-    path = os.path.abspath(os.path.expanduser(os.path.expandvars(file_path)))
+    _path = path.abspath(path.expanduser(path.expandvars(file_path)))
     for f in state["open_files"]:
-        if path == f.name:
+        if _path == f.name:
             return f
 
-    _mode = {'r':'READ', 'w':'WRITE', 'a':'APPEND'}
+    _mode = {'r': 'READ', 'w': 'WRITE', 'a': 'APPEND'}
     log("Opening new file {} in {} mode".format(file_path, _mode[mode]))
     try:
-        file = open(path, mode)
+        file = open(_path, mode)
     except IOError:
         log("Unable to open the file at {}".format(file_path), LOGLEVEL.ERROR)
 
@@ -502,30 +522,31 @@ def open_file(file_path, mode='w'):
 
     if mode == 'r':
         stats["in_files"] += 1
-        dir_name, file_name = os.path.split(path)
+        dir_name, file_name = path.split(_path)
         if state["next_out_file"] is None:
-            root, _ = os.path.splitext(file_name)
+            root, _ = path.splitext(file_name)
             next_out_file(root+'.rpy')
         state["file_chain"].append({
-                "file":file,
-                "file_path":path,
-                "file_dir":dir_name,
-                "file_name":file_name,
-                "cur_line":0,
-                "cur_indent":0,
-                "prev_indent":0,
-                "new_indent":False,
-                "prev_whitespace":[],
-                # "temp_dedent":[],
-                "command_block":False,
-                "command":(None, None),
-                "blank_line":True,
-                "label_chain":[]
+                "file": file,
+                "file_path": _path,
+                "file_dir": dir_name,
+                "file_name": file_name,
+                "cur_line": 0,
+                "cur_indent": 0,
+                "prev_indent": 0,
+                "new_indent": False,
+                "prev_whitespace": [],
+                # "temp_dedent": [],
+                "command_block": False,
+                "command": (None, None),
+                "blank_line": True,
+                "label_chain": []
             })
     else:
         stats["out_files"] += 1
 
     return file
+
 
 def get_out_file():
     if not state["cur_out_file"]:
@@ -533,10 +554,12 @@ def get_out_file():
 
     return state["cur_out_file"]
 
+
 def next_out_file(file):
     log("Seting next output file to {}".format(file), LOGLEVEL.DEBUG)
     state["next_out_file"] = file
     state["cur_out_file"] = None
+
 
 def write_line(line=None, indent=True, file=None):
     _f = state["file_chain"][-1]
@@ -563,6 +586,7 @@ def write_line(line=None, indent=True, file=None):
 
     stats["out_lines"] += len(line.split('\n'))
 
+
 def parse_command_block(line):
     log("Parsing next line in command block", LOGLEVEL.VERB)
     _f = state['file_chain'][-1]
@@ -571,6 +595,7 @@ def parse_command_block(line):
     _m = _c[1].match(':'+_c[0]+' '+line)
 
     parse_command(_m.group(1), _m.groups()[0:], _c[1])
+
 
 parent_label_re = re.compile("^(\w*)\.?.*$")
 def parse_command(command, matches, _re):
@@ -603,14 +628,16 @@ def parse_command(command, matches, _re):
 
     # ^:(:)\s+(\.?[\w\.]*)$
     # TODO: Move all of this to another function and fix it up
-    # TODO: Delay label writing until actuall content is output so that parent labels aren't called unessisarily in the mater file
+    # TODO: Delay label writing until actuall content is output so that parent
+    #       labels aren't called unessisarily in the mater file
     # TODO: Integrate auto_return for labels with content.
     elif command == ":":
         log("command: Label", LOGLEVEL.DEBUG)
         _m = parent_label_re.match(matches[0])
         if _m and _m.groups()[0]:
             log("Parent label: {}".format(_m.group(1)), LOGLEVEL.DEBUG)
-            # TODO: fix this so we write to the correct parent file if it is already open
+            # TODO: fix this so we write to the correct parent file if it is
+            #       already open
             if config["create_parent_files"]:
                 if _m.group(1) not in state["parent_labels"]:
                     log("New parent file: {}".format(_m.group(1)))
@@ -636,13 +663,14 @@ def parse_command(command, matches, _re):
                 log("Adding label call to control file", LOGLEVEL.DEBUG)
                 if not state["control_file"]:
                     state["control_file"] = open_file("control.rpy", 'w')
-                    write_line("label _control_:", False, state["control_file"])
+                    write_line("label _control:", False, state["control_file"])
                 if matches[0][0] == '.':
                     # print state["parent_labels"]
                     write_line("    call "+_f["label_chain"][-1]+matches[0],
-                        False, state["control_file"])
+                               False, state["control_file"])
                 else:
-                    write_line("    call "+matches[0], False, state["control_file"])
+                    write_line("    call "+matches[0], False,
+                               state["control_file"])
 
     # ^:(sc)\s*(\w*)$
     elif command == "sc":
@@ -712,9 +740,10 @@ def parse_command(command, matches, _re):
     # ^:(import)\s*(.*)$
     elif command == "import":
         log("command: Import new file for reading", LOGLEVEL.DEBUG)
-        _f = os.path.abspath(os.path.expanduser(os.path.expandvars(matches[0])))
-        if os.path.isfile(_f) is False:
-            log("{} is not an accessible file".format(matches[0]), LOGLEVEL.ERROR)
+        _f = path.abspath(path.expanduser(path.expandvars(matches[0])))
+        if path.isfile(_f) is False:
+            log("{} is not an accessible file".format(
+                matches[0]), LOGLEVEL.ERROR)
         loop_file(in_file)
 
     # ^:(file)\s*(.*)$
@@ -760,18 +789,23 @@ def parse_command(command, matches, _re):
         log("Break command encountered", LOGLEVEL.WARN)
         sys.exit()
 
+
 class Indent_Level_Str(object):
     def __str__(self):
         if state["is_nvl_mode"] is False:
             return '    '*state["file_chain"][-1]["cur_indent"]
         return '    '*(state["file_chain"][-1]["cur_indent"]-1)
+
     def __add__(self, other):
         if issubclass(type(other), str):
             return str(self)+other
+
     def __radd__(self, other):
         if issubclass(type(other), str):
             return other+str(self)
+
 _il = Indent_Level_Str()
+
 
 def indentinator(leading_whitespace):
     log("Performing indentation management", LOGLEVEL.VERB)
@@ -808,6 +842,7 @@ def indentinator(leading_whitespace):
             else:
                 state["is_nvl_mode"] += 1
 
+
 def fix_brace(matchobj):
     _m = matchobj.group(0)
     if _m in rep_dict3:
@@ -815,6 +850,7 @@ def fix_brace(matchobj):
     else:
         log("Failed to match {}".format(_m), LOGLEVEL.WARN)
         return _m
+
 
 empty_line_re = re.compile("^\s*$")
 comment_re = re.compile("^(\s*)#(.*)$")
@@ -891,8 +927,9 @@ def parse_line(line):
             try:
                 write_line(re.sub('\xc0|\xc1', fix_brace, _s))
             except Exception as e:
-                log("Unable to replace line:\n  {}\n  {}".format(
-                    v, _m.groups()), LOGLEVEL.ERROR)
+                raise
+                # log("Unable to replace line:\n  {}\n  {}".format(
+                #     v, _m.groups()), LOGLEVEL.ERROR)
             return
 
     # Prefix Replacement
@@ -913,8 +950,9 @@ def parse_line(line):
                 _line = _line.format(*_m.groups())
                 write_line(re.sub('\xc0|\xc1', fix_brace, _line))
             except Exception as e:
-                log("Unable to replace prefix:\n  {}\n  {}".format(
-                    v[0], _m.groups()), LOGLEVEL.ERROR)
+                raise
+                # log("Unable to replace prefix:\n  {}\n  {}".format(
+                #     v[0], _m.groups()), LOGLEVEL.ERROR)
             return
 
     # Unknown command
@@ -922,7 +960,8 @@ def parse_line(line):
     _m = command_re.match(line)
     if _m:
         # TODO: implement unknow command outputs
-        log("Unknown command processing not yet implemented, sorry :/", LOGLEVEL.WARN)
+        log("Unknown command processing not yet implemented, sorry :/",
+            LOGLEVEL.WARN)
         # log("Unknown command detected", LOGLEVEL.INFO)
         # # TODO: Use current indent level
         # # TODO: make use of this dict value
@@ -955,6 +994,7 @@ def cleanup():
         except ValueError:
             pass
     log.close()
+
 
 if __name__ == "__main__":
     atexit.register(cleanup)
