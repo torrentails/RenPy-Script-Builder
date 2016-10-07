@@ -586,7 +586,8 @@ def open_file(file_path, mode='w'):
                 "command_block": False,
                 "command": (None, None),
                 "blank_line": True,
-                "label_chain": []
+                "label_chain": [],
+                "next_label_call": None
             })
     else:
         stats["out_files"] += 1
@@ -629,6 +630,21 @@ def write_line(line=None, indent=True, file=None):
         file.write('\n'.join([_i+l.strip() for l in line.split('\n')])+'\n')
     else:
         file.write(line+'\n')
+
+    if config["create_flow_control_file"]:
+        _label = _f["next_label_call"]
+        if _label:
+            log("Adding label call to control file", LOGLEVEL.DEBUG)
+            _f["next_label_call"] = None
+            if not state["control_file"]:
+                state["control_file"] = open_file("control.rpy", 'w')
+                write_line("label _control:", False, state["control_file"])
+            if _label[0] == '.':
+                write_line("    call "+_f["label_chain"][-1]+_label,
+                           False, state["control_file"])
+            else:
+                write_line("    call "+_label, False, state["control_file"])
+        _f["next_label_call"] = None
 
     stats["out_lines"] += len(line.split('\n'))
 
@@ -690,14 +706,9 @@ def parse_command(command, matches, _re):
                     next_out_file(_m.group(1)+'.rpy')
                     state["parent_labels"].add(_m.group(1))
 
-        write_line('label '+matches[0]+':')
+        _f["next_label_call"] = None
 
-        # Build label chain links
-        # TODO: Fix this mess up
-        if matches[0][0] != '.':
-            if matches[0].split('.')[0] not in _f["label_chain"]:
-                _f["label_chain"].append(matches[0].split('.')[0])
-                # log(_f["label_chain"])
+        write_line('label '+matches[0]+':')
 
         if config["create_flow_control_file"]:
             ignore = False
@@ -706,17 +717,14 @@ def parse_command(command, matches, _re):
                     ignore = True
                     break
             if not ignore:
-                log("Adding label call to control file", LOGLEVEL.DEBUG)
-                if not state["control_file"]:
-                    state["control_file"] = open_file("control.rpy", 'w')
-                    write_line("label _control:", False, state["control_file"])
-                if matches[0][0] == '.':
-                    # print state["parent_labels"]
-                    write_line("    call "+_f["label_chain"][-1]+matches[0],
-                               False, state["control_file"])
-                else:
-                    write_line("    call "+matches[0], False,
-                               state["control_file"])
+                _f["next_label_call"] = matches[0]
+
+        # Build label chain links
+        # TODO: Fix this mess up
+        if matches[0][0] != '.':
+            if matches[0].split('.')[0] not in _f["label_chain"]:
+                _f["label_chain"].append(matches[0].split('.')[0])
+                # log(_f["label_chain"])
 
     # ^:(sc)\s*(\w*)$
     elif command == "sc":
