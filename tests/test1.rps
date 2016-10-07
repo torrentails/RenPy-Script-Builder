@@ -15,13 +15,13 @@
     nvl_prefix = nvl_
     nvl_suffix = _NVL_test
     auto_return = True
-    # abort_on_error = False
+    abort_on_error = False
 
 # TEST: parent label (non-block)
 ::line_test
 
 # TEST: line replacement (single)
-:l LineRep_01 = "Line replacement 01"
+:l LineRep_01 = Line replacement 01
 
 # TEST: sub label, with parent (non-block)
 ::line_test.single
@@ -32,19 +32,19 @@ LineRep_01
 # TEST: line replacement (block)
 :l:
     # TEST: single character replacement
-    LineRep_02(?) = "Line replacement 02"
+    LineRep_02(?) = Line replacement 02
     # TEST: one or more character replacement
-    LineRep_03(+) = "Line replacement 03"
+    LineRep_03(+) = Line replacement 03
     # TEST: zero or more character replacement
-    LineRep_04(*) = "Line replacement 04"
+    LineRep_04(*) = Line replacement 04
     # TEST: zero or more character replacement with capture
-    LineRep_05({*}) = "Line replacement 05 ({})"
+    LineRep_05({*}) = Line replacement 05 ({})
     # TEST: escapes
-    LineRep_06(\\\{\?\+\*\}) = "Line replacement 06"
+    LineRep_06(\\\{\?\+\*\}) = Line replacement 06
     # TEST: multiple wildcards
-    Line?Rep_*07(+) = "Line replacement 07"
+    Line?Rep_*07(+) = Line replacement 07
     # TEST: multiple wildcards with captures
-    Line{?}Rep_{*}08({+}) = "Line {} replacement {} 08 ({})"
+    Line{?}Rep_{*}08({+}) = Line {} replacement {} 08 ({})
 
 # TEST: sub label, without parent (non-block)
 ::.block
@@ -60,17 +60,17 @@ LineRep_06(\{?+*})
 LineQRep_$@07(a)
 LineRep_07(abc)
 LineQRep_$@08(a)
-LineRep_#h08(abc)
+LineRep_#comment08(abc)
 Line_Rep_08(xyz)
 :r
 
 ::.order
 :l:
     # TEST: line replacement order
-    LineOrder(+) = "Line order 01 (+)"
-    LineOrder(?) = "Line order 02 (?)"
-    LineOrder(*) = "Line order 03 (*)"
-    LineOrder() = "Line order 04 ()"
+    LineOrder(+) = Line order 01 (+)
+    LineOrder(?) = Line order 02 (?)
+    LineOrder(*) = Line order 03 (*)
+    LineOrder() = Line order 04 ()
 
 # TEST: line order replacements
 LineOrder(abc)
@@ -128,7 +128,7 @@ LineOrder()
     ::.menu:
         # TEST: menu
         :m:
-            This is accompayning narration
+            This is accompanying narration
             This is the first choice:
                 # TEST: jump
                 :j flow_control._choice_01
@@ -209,16 +209,24 @@ LineOrder()
     ::.nvl:
         :p char: = CHARACTER
         This narration is in ADV mode
-        char: This dailouge line is in ADV mode
+        char: This dialog line is in ADV mode
         # TEST: NVL mode
         :nvl:
             This narration is in NVL mode
-            char: This dailouge line is in NVL mode
+            char: This dialog line is in NVL mode
             # TEST: NVL clear
             :clear
             This NVL line is on the next page
         char: This line will be in ADV mode again
         :r
+
+    ::.misc:
+      # TEST: Odd indentation
+      Line indentation doesn't matter
+      As long as it is consistent, just like python.
+       But this'll throw an error
+     Likewise
+      :r
 
     ::.logging:
         # TEST: logging verbose
@@ -240,11 +248,3 @@ LineOrder()
         # TEST: break
         :break
         :r
-
-    ::.misc:
-      # TEST: Odd indentation
-      Line indentation doesn't matter
-      As long as it is consistent, just like python.
-       But this'll throw an error
-     Likewise
-      :r

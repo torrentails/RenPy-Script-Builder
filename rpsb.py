@@ -72,7 +72,8 @@ config = {
     "nvl_prefix": "",
     "nvl_suffix": "_NVL",
     "output_path": ".",
-    "auto_return": True
+    "auto_return": True,
+    "abort_on_error": True,
 }
 
 stats = {
@@ -250,7 +251,7 @@ class _Logger(object):
 
         elif level >= LOGLEVEL.ERROR:
             print _c[level]+"[{:<6} {}".format(LOGLEVEL[level]+']', msg)+_c.r
-            if exit:
+            if exit and config["abort_on_error"]:
                 sys.exit(exit)
 
         if self.__log_count >= self.__log_flush_number:
@@ -277,7 +278,8 @@ class _Logger(object):
     def log_traceback(self, exit_code=1):
         _tb = '\n>>> '.join(traceback.format_exc().split('\n')[:-1])
         log("Traceback:\n>>> {}".format(_tb),
-            LOGLEVEL.ERROR, exit = exit_code)
+            LOGLEVEL.ERROR, exit = False)
+        sys.exit(exit_code)
 
     def stats(self, cur_time=None):
         log("Logging statistics", LOGLEVEL.VERB)
@@ -333,7 +335,7 @@ def log(msg, level=LOGLEVEL.INFO, exit=True):
     msg = _ln+msg
     _tmp_log.append({'time': time.time(), 'level': level, 'message': msg})
     if level >= LOGLEVEL.ERROR:
-        if exit:
+        if exit and config["abort_on_error"]:
             sys.exit(_c[level]+"[{:<6} {}".format(LOGLEVEL[level]+']', msg))
         else:
             print _c[level]+"[{:<6} {}".format(LOGLEVEL[level]+']', msg)+_c.r
@@ -810,7 +812,7 @@ def parse_command(command, matches, _re):
     elif command == "log":
         log("command: write to log", LOGLEVEL.VERB)
         try:
-            log(matches[1], matches[0])
+            log(matches[1], int(matches[0]))
         except ValueError:
             log(matches[1], eval("LOGLEVEL."+matches[0]))
 
@@ -829,7 +831,7 @@ def parse_command(command, matches, _re):
         else:
             try:
                 config[matches[0]] = eval(matches[1])
-            except SyntaxError:
+            except (SyntaxError, NameError):
                 config[matches[0]] = matches[1]
 
     # ^:(config:)$
@@ -927,6 +929,8 @@ def parse_line(line):
         line = _m.group(2).rstrip()
         if line[0] == config["copy_special_comments"]:
             write_line(_m.group(1)+'#'+line, indent=False)
+        else:
+            log("Non-copy comment detected; skipping.", LOGLEVEL.VERB)
         return
 
     indentinator(len(line) - len(line.lstrip()))
@@ -957,7 +961,9 @@ def parse_line(line):
     # $ starting python lines
     _m = python_re.match(line)
     if _m:
+        log("Python line command detected", LOGLEVEL.DEBUG)
         write_line(_m.group(1))
+        return
 
     line = line.replace('"', r'\"')
 
