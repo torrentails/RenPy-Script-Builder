@@ -9,7 +9,7 @@ Usage: "python rpsb.py input-file [-o output-dir]"
 Use "--help" for more info.
 """
 
-import os, sys, getopt, re, time, types, atexit
+import os, sys, getopt, re, time, types, atexit, traceback
 from os import path
 
 __version__ = "0.4.6"
@@ -176,7 +176,7 @@ class LOGLEVEL:
     VERBOSE = 0
 
     def __getitem__(self, i):
-        return ('VERBOSE', 'DEBUG', 'INFO', 'WARNING', 'ERROR')[i]
+        return ('VERB', 'DEBUG', 'INFO', 'WARN', 'ERROR')[i]
 
 LOGLEVEL = LOGLEVEL()
 
@@ -196,6 +196,9 @@ class _Logger(object):
 
         # self.log_display_level = self.log_save_level + 1
 
+        self.__errors = 0
+        self.__warnings = 0
+
         self.__log = []  # copy.deepcopy(tmp_log)
         self.__log_flush_number = flush_number
         self.__log_count = 0
@@ -206,13 +209,18 @@ class _Logger(object):
         for val in tmp_log:
             if val['level'] >= self.log_save_level:
                 log_string = ("<{0[3]:0>2n}:{0[4]:0>2n}:{0[5]:0>2n}>"
-                    " [{1:<8} {2}\n".format(time.localtime(val['time']),
+                    " [{1:<6} {2}\n".format(time.localtime(val['time']),
                     LOGLEVEL[val['level']]+']', val['message']))
                 _log.append(log_string)
 
             if LOGLEVEL.ERROR > val['level'] >= self.log_display_level:
-                print _c[val['level']]+"[{:<8} {}".format(
+                print _c[val['level']]+"[{:<6} {}".format(
                     LOGLEVEL[val['level']]+']', val['message'])+_c.r
+
+            if val['level'] == LOGLEVEL.WARN:
+                self.__warnings += 1
+            elif val['level'] >= LOGLEVEL.ERROR:
+                self.__errors += 1
 
         if _log:
             try:
@@ -222,7 +230,7 @@ class _Logger(object):
                 raise
                 # log("Unable to open log file for writing.", LOGLEVEL.ERROR)
 
-    def __call__(self, msg, level=LOGLEVEL.INFO, exit=True):
+    def __call__(self, msg, level=LOGLEVEL.INFO, exit=1):
         if level >= self.log_save_level:
             self.__log_count += 1
         else:
@@ -232,13 +240,18 @@ class _Logger(object):
         msg = _ln+str(msg)
         self.__log.append({'time': cur_time, 'level': level, 'message': msg})
 
+        if level == LOGLEVEL.WARN:
+            self.__warnings += 1
+        elif level >= LOGLEVEL.ERROR:
+            self.__errors += 1
+
         if LOGLEVEL.ERROR > level >= self.log_display_level:
-            print _c[level]+"[{:<8} {}".format(LOGLEVEL[level]+']', msg)+_c.r
+            print _c[level]+"[{:<6} {}".format(LOGLEVEL[level]+']', msg)+_c.r
 
         elif level >= LOGLEVEL.ERROR:
-            print _c[level]+"[{:<8} {}".format(LOGLEVEL[level]+']', msg)+_c.r
+            print _c[level]+"[{:<6} {}".format(LOGLEVEL[level]+']', msg)+_c.r
             if exit:
-                sys.exit(1)
+                sys.exit(exit)
 
         if self.__log_count >= self.__log_flush_number:
             self.flush()
@@ -248,7 +261,7 @@ class _Logger(object):
         for l in self.__log:
             if l['level'] >= self.log_save_level:
                 log_string = ("<{0[3]:0>2n}:{0[4]:0>2n}:{0[5]:0>2n}>"
-                    " [{1:<8} {2}\n".format(time.localtime(l['time']),
+                    " [{1:<6} {2}\n".format(time.localtime(l['time']),
                     LOGLEVEL[l['level']]+']', l['message']))
                 _log.append(log_string)
 
@@ -260,6 +273,11 @@ class _Logger(object):
             except IOError:
                 raise
                 # log("Unable to open log file for writing.", LOGLEVEL.ERROR)
+
+    def log_traceback(self, exit_code=1):
+        _tb = '\n>>> '.join(traceback.format_exc().split('\n')[:-1])
+        log("Traceback:\n>>> {}".format(_tb),
+            LOGLEVEL.ERROR, exit = exit_code)
 
     def stats(self, cur_time=None):
         log("Logging statistics", LOGLEVEL.VERB)
@@ -298,6 +316,15 @@ class _Logger(object):
 
     def close(self):
         log("Closing logger", LOGLEVEL.DEBUG)
+
+        if self.__errors:
+            log("Build failed with {} WARNINGS and {} ERRORS".format(
+                self.__warnings, self.__errors), LOGLEVEL.WARN)
+        else:
+            log("Build completed sucessfully with {} WARNINGS "
+                "and {} ERRORS".format(self.__warnings, self.__errors),
+                LOGLEVEL.INFO)
+
         self.stats(time.time())
         self.flush()
 
@@ -307,14 +334,21 @@ def log(msg, level=LOGLEVEL.INFO, exit=True):
     _tmp_log.append({'time': time.time(), 'level': level, 'message': msg})
     if level >= LOGLEVEL.ERROR:
         if exit:
-            sys.exit(_c[level]+"[{:<8} {}".format(LOGLEVEL[level]+']', msg))
+            sys.exit(_c[level]+"[{:<6} {}".format(LOGLEVEL[level]+']', msg))
         else:
-            print _c[level]+"[{:<8} {}".format(LOGLEVEL[level]+']', msg)+_c.r
+            print _c[level]+"[{:<6} {}".format(LOGLEVEL[level]+']', msg)+_c.r
 
 
-def _close():
+def _log_close(*args, **kwargs):
     pass
-log.close = _close
+log.close = _log_close
+
+
+def _log_traceback(exit_code=1):
+    _tb = "\n        ".join(traceback.format_exc().split('\n'))
+    log("Traceback:\n        {}".format(_tb),
+        LOGLEVEL.ERROR, exit = exit_code)
+log.log_traceback = _log_traceback
 
 
 def setup_globals(output_path=None, flush_number=10):
@@ -416,7 +450,7 @@ def usage(error=None, exit_code=None):
 
 
 def main(argv):
-    global _debug
+    global _debug, log
 
     if not argv:
         usage("No input script file defined.")
@@ -437,8 +471,7 @@ def main(argv):
     _debug = 0
 
     if opts:
-        log("Parsing command line arguments", LOGLEVEL.VERB)
-        log("Arguments: {}".format(opts), LOGLEVEL.VERB)
+        log("Command line arguments: {}".format(opts), LOGLEVEL.VERB)
     else:
         log("No additional command line arguments detected", LOGLEVEL.VERB)
 
@@ -469,7 +502,16 @@ def main(argv):
     in_file = path.abspath(path.expanduser(path.expandvars(argv[0])))
 
     if path.isfile(in_file) is False:
-        log("{} is not an accessible file".format(argv[0]), LOGLEVEL.ERROR)
+        log("{} is not an accessible file".format(argv[0]),
+            LOGLEVEL.ERROR, exit = False)
+        try:
+            log("initializing logger", LOGLEVEL.DEBUG)
+            os.chdir(path.dirname(in_file))
+        except:
+            log("Failed to set directory for logger", LOGLEVEL.ERROR)
+        else:
+            log = _Logger(_tmp_log, _flush)
+            sys.exit(1)
 
     os.chdir(path.dirname(in_file))
 
@@ -511,12 +553,16 @@ def open_file(file_path, mode='w'):
         if _path == f.name:
             return f
 
+    # TODO: Fix this so it prints nice.
+    _path_for_log = _path.replace(os.getcwd(), '.')
     _mode = {'r': 'READ', 'w': 'WRITE', 'a': 'APPEND'}
-    log("Opening new file {} in {} mode".format(file_path, _mode[mode]))
+    log("Opening new file {} in {} mode".format(_path_for_log, _mode[mode]),
+        LOGLEVEL.INFO)
     try:
         file = open(_path, mode)
     except IOError:
-        log("Unable to open the file at {}".format(file_path), LOGLEVEL.ERROR)
+        log("Unable to open the file at {}".format(_path_for_log),
+            LOGLEVEL.ERROR)
 
     state["open_files"].add(file)
 
@@ -744,6 +790,7 @@ def parse_command(command, matches, _re):
         if path.isfile(_f) is False:
             log("{} is not an accessible file".format(
                 matches[0]), LOGLEVEL.ERROR)
+        log("Importing file {}".format(matches[0]), LOGLEVEL.INFO)
         loop_file(_f)
 
     # ^:(file)\s*(.*)$
@@ -767,7 +814,6 @@ def parse_command(command, matches, _re):
 
         if matches[0] == "flow_control_ignore":
             _l = []
-            print matches[1]
             for v in eval(matches[1].replace(r'\"', '"')):
                 _l.append(re.compile('^'+regex_prep(v)+'$'))
             config["flow_control_ignore"] = _l
@@ -786,7 +832,7 @@ def parse_command(command, matches, _re):
 
     # ^:(break)$
     elif command == "break":
-        log("Break command encountered", LOGLEVEL.WARN)
+        log("Break command encountered", LOGLEVEL.INFO)
         sys.exit()
 
 
@@ -1002,8 +1048,9 @@ if __name__ == "__main__":
     log("Starting Build", LOGLEVEL.INFO)
     try:
         main(sys.argv[1:])
-    except Exception as e:
-        raise
+    except BaseException as e:
+        if isinstance(e, SystemExit):
+            raise
+        log.log_traceback()
     else:
-        log("Done!", LOGLEVEL.INFO)
         sys.exit()
