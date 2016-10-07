@@ -12,7 +12,7 @@ Use "--help" for more info.
 import os, sys, getopt, re, time, types, atexit, traceback
 from os import path
 
-__version__ = "0.4.6"
+__version__ = "0.5.31"
 __author__ = "Nathan Sullivan"
 __email__ = "contact@torrentails.com"
 __license__ = "MIT"

@@ -428,6 +428,10 @@ The following are the available configuration options and their associated defau
   Set the suffix applied to character names during NVL blocks.
 + `output_path = "."`
   Set the relative or absolute output path for the generated script files. The default `"."` will create the files in the same location as your script file.
++ `auto_return = True`
+  When set to `True`, the script will automatically insert `return` statements at the end of each label block, mostly eliminating the need for the `:r` command.
++ `abort_on_error = True`
+  If `True`, when an error is encountered, script execution will abort at that point. Setting this to `False` will force the script ignore the error and continue parsing. The `:break` command will still break processing, even if this is set to `False`.
 
 Syntax Reference
 ----------------
@@ -492,6 +496,8 @@ Syntax Reference
 |`nvl_prefix`|`""`|The prefix applied to character names during NVL blocks|
 |`nvl_suffix`|`"_NVL"`|The suffix applied to character names during NVL blocks|
 |`output_path`|`"."`|The output path for generated files|
+|`auto_return`|`True`|If `True`, automatically insert `return` statements at the end of each label block|
+|`abort_on_error`|`True`|If `True`, ignore any errors encountered|
 
 ### Log Levels
 
