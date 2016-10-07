@@ -1,0 +1,250 @@
+#! RenPy Script Builder test file
+
+# TEST: config (single)
+:config output_path = ./output
+
+# TEST: test config (block)
+:config:
+    # TEST: all other config options
+    create_parent_files = True
+    create_flow_control_file = True
+    flow_control_ignore = ["*_c+", "*_choice*", "*_ignore*"]
+    copy_comments = False
+    copy_special_comments = #
+    nvl_character = NVL_test
+    nvl_prefix = nvl_
+    nvl_suffix = _NVL_test
+    auto_return = True
+    # abort_on_error = False
+
+# TEST: parent label (non-block)
+::line_test
+
+# TEST: line replacement (single)
+:l LineRep_01 = "Line replacement 01"
+
+# TEST: sub label, with parent (non-block)
+::line_test.single
+# TEST: single line replacement
+LineRep_01
+:r
+
+# TEST: line replacement (block)
+:l:
+    # TEST: single character replacement
+    LineRep_02(?) = "Line replacement 02"
+    # TEST: one or more character replacement
+    LineRep_03(+) = "Line replacement 03"
+    # TEST: zero or more character replacement
+    LineRep_04(*) = "Line replacement 04"
+    # TEST: zero or more character replacement with capture
+    LineRep_05({*}) = "Line replacement 05 ({})"
+    # TEST: escapes
+    LineRep_06(\\\{\?\+\*\}) = "Line replacement 06"
+    # TEST: multiple wildcards
+    Line?Rep_*07(+) = "Line replacement 07"
+    # TEST: multiple wildcards with captures
+    Line{?}Rep_{*}08({+}) = "Line {} replacement {} 08 ({})"
+
+# TEST: sub label, without parent (non-block)
+::.block
+# TEST: block line replacements
+LineRep_02(a)
+LineRep_02()
+LineRep_03(abc)
+LineRep_04(abcd)
+LineRep_04()
+LineRep_05(foobar)
+LineRep_05()
+LineRep_06(\{?+*})
+LineQRep_$@07(a)
+LineRep_07(abc)
+LineQRep_$@08(a)
+LineRep_#h08(abc)
+Line_Rep_08(xyz)
+:r
+
+::.order
+:l:
+    # TEST: line replacement order
+    LineOrder(+) = "Line order 01 (+)"
+    LineOrder(?) = "Line order 02 (?)"
+    LineOrder(*) = "Line order 03 (*)"
+    LineOrder() = "Line order 04 ()"
+
+# TEST: line order replacements
+LineOrder(abc)
+LineOrder(z)
+LineOrder()
+:r
+
+# TEST: parent label (non-block)
+::prefix_test:
+
+    # TEST: prefix replacement (single)
+    :p prefix_01; = PREFIX_01
+
+    # TEST: sub label, with parent (block)
+    ::line_test.single:
+        # TEST: single prefix replacement
+        prefix_01; Hello, World!
+
+    # TEST: prefix replacement (block)
+    :p:
+        # TEST: single character replacement
+        prefix_02?; = PREFIX_02
+        # TEST: one or more character replacement
+        prefix_03+; = PREFIX_03
+        # TEST: zero or more character replacement
+        prefix_04*; = PREFIX_04
+        # TEST: zero or more character replacement with capture
+        prefix_05{*}; = PREFIX_05 ({})
+        # TEST: escapes
+        prefix_06\\\{\?\+\*\}; = PREFIX_06
+        # TEST: multiple wildcards
+        pre?fix_*07+; = PREFIX_07
+        # TEST: multiple wildcards with captures
+        pre{?}fix_{*}08{+}; = PRE{}FIX_{}08{}
+
+    # TEST: block prefix replacements
+    ::.block:
+        # TEST: block prefix replacements
+        prefix_02a; foobar1 a
+        prefix_02; foobar1 None
+        prefix_03abc; foobar2 abc
+        prefix_04xyz; foobar3 xyz
+        prefix_04; foobar3 None
+        prefix_05gg; foobar4
+        prefix_05; foobar4
+        prefix_06\{?+*}; foobar5
+        pre_fix_$@07a; foobar6
+        prefix_07abc; foobar6
+        pre_fix_xy08zz; foobar7
+        prefix_ab08cd; foobar7
+        preqfix_08ef; foobar7
+        :r
+
+::flow_control:
+    ::.menu:
+        # TEST: menu
+        :m:
+            This is accompayning narration
+            This is the first choice:
+                # TEST: jump
+                :j flow_control._choice_01
+            This is the second choice:
+                # TEST call
+                :c ._c02
+            A third choice:
+                # TEST: jump to different parent label
+                :j other.this_is_ignored
+        :r
+
+    # TEST: Choice ignored label
+    ::._choice_01:
+        Choice 1
+        # TEST: Python Line
+        $ choice = 1
+        # TEST: return
+        :r
+
+    # TEST: Custom ignore label
+    ::._c02:
+        Choice 2
+        $ choice = 2
+        # TEST: return with value
+        :r "foo"
+
+    ::.if_elif_else:
+        # TEST: if
+        :if choice == 1:
+            You chose the first option.
+        # TEST: elif
+        :elif choice == 2:
+            You chose the second option.
+        # TEST: else
+        :else:
+            You chose the third option.
+        :r
+
+::files:
+    ::.import:
+        # TEST: import
+        :import test2.rps
+        :r
+
+    ::.file:
+        # TEST: New output file
+        :file foobar.rpy
+        This line should be in 'output/foobar.rpy'
+        :r
+
+::other:
+    # TEST: Ignored label
+    ::.this_is_ignored:
+        Nothing here
+        $ choice = 3
+        :r
+
+    ::.comments:
+        # TEST: Comments
+        # non-copy comment
+        ## copy comment
+    # unindented non-copy comment
+    ## unindented copy comment
+        :config copy_special_comments = ~
+   # Oddly indented non-copy comment
+      #~ Oddly indented copy comment with new comment symbol
+        :r
+
+    ::.scene_show_with:
+        # TEST: scene
+        :sc scene_01
+        # TEST: show
+        :s image_01
+        # TEST: with
+        :w Dissolve(0.5)
+        :r
+
+    ::.nvl:
+        :p char: = CHARACTER
+        This narration is in ADV mode
+        char: This dailouge line is in ADV mode
+        # TEST: NVL mode
+        :nvl:
+            This narration is in NVL mode
+            char: This dailouge line is in NVL mode
+            # TEST: NVL clear
+            :clear
+            This NVL line is on the next page
+        char: This line will be in ADV mode again
+        :r
+
+    ::.logging:
+        # TEST: logging verbose
+        :log 0 Verbose 1
+        :log VERBOSE Verbose 2
+        # TEST: logging debug
+        :log 1 Debug 1
+        :log DEBUG Debug
+        # TEST: logging info
+        :log 2 Info 1
+        :log INFO Info 2
+        # TEST: logging warning
+        :log 3 Warning 1
+        :log WARN Warning 2
+        :log WARNING Warning 3
+        # TEST: logging error
+        :log 4 Error 1
+        :log ERROR Error 2
+        # TEST: break
+        :break
+        :r
+
+    ::.misc:
+      # TEST: Odd indentation
+      Line indentation doesn't matter
+      As long as it is consistent, just like python.
+       But this'll throw an error
+     Likewise
+      :r
