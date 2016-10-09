@@ -8,7 +8,7 @@ a Ren'Py v6.99.11 compatible .rpy file(s).
 Usage: "python rpsb.py input-file [-o output-dir]"
 Use "--help" for more info.
 """
-from __future__ import print_function, unicode_literals
+from __future__ import print_function
 from builtins import str, range, object
 
 import os
@@ -18,7 +18,6 @@ import re
 import time
 import types
 import traceback
-import codecs
 from os import path
 from functools import reduce
 
@@ -34,7 +33,7 @@ try:
     Back = colorama.Back
     Style = colorama.Style
 except ImportError:
-    class __fake_col__(object):
+    class __fake_col__():
         def __getattr__(*a, **kw):
             return ''
     Fore = __fake_col__()
@@ -42,7 +41,7 @@ except ImportError:
     Style = Fore
 
 
-class Colorama_Helper(object):
+class Colorama_Helper:
     r = Style.RESET_ALL+Fore.WHITE
     l = (
         Fore.LIGHTBLACK_EX,
@@ -143,7 +142,6 @@ command_list = [
     re.compile("^:(c)\s+(.*)$"),
     re.compile("^:(j)\s+(.*)$"),
     re.compile("^:(r)$"),
-    re.compile("^:(r)\s+(.*)$"),
     re.compile("^:(m):$"),
     re.compile("^:(if)\s+(.*?):$"),
     re.compile("^:(elif)\s+(.*?):$"),
@@ -178,7 +176,7 @@ class Current_Line_Str(object):
 _ln = Current_Line_Str()
 
 
-class LOGLEVEL(object):
+class LOGLEVEL:
     ERROR = 4
     WARN = 3
     WARNING = 3
@@ -577,10 +575,7 @@ def open_file(file_path, mode='w'):
     log("Opening new file {} in {} mode".format(_path_for_log, _mode[mode]),
         LOGLEVEL.INFO)
     try:
-        if mode == 'w':
-            file = codecs.open(_path, mode, "utf-8")
-        else:
-            file = codecs.open(_path, 'U'+mode, "utf-8")
+        file = open(_path, mode)
     except IOError:
         log("Unable to open the file at {}".format(_path_for_log),
             LOGLEVEL.ERROR)
@@ -774,13 +769,9 @@ def parse_command(command, matches, _re):
         write_line('jump '+matches[0])
 
     # ^:(r)$
-    # ^:(r)\s+(.*)$
     elif command == "r":
         log("command: Return", LOGLEVEL.DEBUG)
-        if len(matches) >= 1:
-            write_line("return {}".format(matches[0]))
-        else:
-            write_line('return')
+        write_line('return')
 
     # ^:(m):$
     elif command == "m":
@@ -1000,7 +991,7 @@ def parse_line(line):
 
     # Line replacement
     log("Checking for line replacement", LOGLEVEL.VERB)
-    for k, v in state["known_line_rep"].items():
+    for k, v in state["known_line_rep"].iteritems():
         _m = k.match(line)
         if _m:
             log("Line replacement match", LOGLEVEL.VERB)
@@ -1017,7 +1008,7 @@ def parse_line(line):
 
     # Prefix Replacement
     log("Checking for prefix replacement", LOGLEVEL.VERB)
-    for k, v in state["known_prefix_rep"].items():
+    for k, v in state["known_prefix_rep"].iteritems():
         _m = k.match(line)
         if _m:
             log("Prefix replacement match", LOGLEVEL.VERB)

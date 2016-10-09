@@ -18,7 +18,7 @@ label flow_control:
     label ._c02:
         "Choice 2"
         $ choice = 2
-        ":r \"foo\""
+        return \"foo\"
         
     label .if_elif_else:
         if choice == 1:
