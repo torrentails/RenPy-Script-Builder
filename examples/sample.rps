@@ -9,7 +9,7 @@
     b: = BETH
     c: = CHARLES
 
-# This is a comment, and won't be written to the output.
+# This is a comment, and won't be written to the output file.
 ## This comment will though.
 
 ::Act_1
@@ -22,22 +22,26 @@
     Suddenly I heard a knock at the door to my tiny office.
     a: Come in. The door's unlocked.
     I turned to face the wooden door as it opened, revealing a familiar face.
+    :s beth normal at center
     b: Hi Adam, how's the script going?
     a: It's going well, I've made some great progress!
     a: I'm just taking a bit of break at the moment.
+    :s beth cheeky at center
     Beth smiled cheekily. Something was up.
     b: Well if you're not busy, perhaps you'd like to meet someone?
     b: You'll like him, I'm sure!
     a: *sigh* Sure, I don't see why not.
     I got up and grabbed my jacket and headed out the door with the waiting Beth.
-    :r
 
 ::.scene_02:
     >> office_reception
+    :s charles normal at center
     Standing before me is man in a sharp suit.
     He almost looks out of place amongst the small, casually dressed team we have.
+    :s charles handshake at center
     Upon seeing me, he extends a hand which I take.
     His grasp is firm as he give my had a shake.
+    :s charles normal at center
     c: The name's Charles!
     c: I work for Big Name Publishings and we're very interested in the work you and your team have done making visual novels.
 
@@ -51,6 +55,10 @@
 ::.accept:
     An opportunity like this only comes around once in a life time!
     a: I'm honoured, of course we'd all be happy to!
+    :s charles happy at center
+    c: Fantastic!
+    c: We'll get the paper work sorted out later.
+    :s beth smile at right
     b: See, I told you you'd like him!
     >> success
     We accepted their deal and became a big name in the industry.
@@ -63,7 +71,9 @@
     a: Thank you Charles for the offer...
     a: But we pride ourselves on our independence and creative freedom.
     a: So I'm going to have to turn you down, sorry.
+    :s charles mopey at center
     c: I completely understand, thank you for your time.
+    :s beth sad at right
     b: Aw, I really though this would work.
     >> great_games
     Despite not having a lot of budget for our small studio, by sticking to our values we produced many fine games!
