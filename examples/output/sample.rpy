@@ -1,5 +1,5 @@
 ## This comment will though.
-    
+
 label Act_1:
 label .scene_01:
     scene tiny_office
@@ -20,7 +20,7 @@ label .scene_01:
     BETH "You'll like him, I'm sure!"
     ADAM "*sigh* Sure, I don't see why not."
     "I got up and grabbed my jacket and headed out the door with the waiting Beth."
-    
+
 label .scene_02:
     scene office_reception
     with time_skip_transition
@@ -33,14 +33,14 @@ label .scene_02:
     show charles normal at center
     CHARLES "The name's Charles!"
     CHARLES "I work for Big Name Publishings and we're very interested in the work you and your team have done making visual novels."
-    
+
     menu:
         CHARLES "We'd like to offer you a lucrative publishing deal for your upcoming games."
         "Accept the offer":
             jump .accept
         "Reject him":
             jump .reject
-            
+
 label .accept:
     "An opportunity like this only comes around once in a life time!"
     ADAM "I'm honoured, of course we'd all be happy to!"
@@ -55,7 +55,7 @@ label .accept:
     "We decided to all take a big holiday in Japan to celebrate."
     "THE END"
     return
-    
+
 label .reject:
     "This deal would just mean loss of our creative freedom that we've become known for."
     ADAM "Thank you Charles for the offer..."

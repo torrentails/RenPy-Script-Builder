@@ -22,40 +22,14 @@ import codecs
 from os import path
 from functools import reduce
 
-__version__ = "0.5.31"
+__version__ = "0.5.6"
 __author__ = "Nathan Sullivan"
 __email__ = "contact@torrentails.com"
 __license__ = "MIT"
 
-try:
-    import colorama
-    colorama.init()
-    Fore = colorama.Fore
-    Back = colorama.Back
-    Style = colorama.Style
-except ImportError:
-    class __fake_col__(object):
-        def __getattr__(*a, **kw):
-            return ''
-    Fore = __fake_col__()
-    Back = Fore
-    Style = Fore
-
-
-class Colorama_Helper(object):
-    r = Style.RESET_ALL+Fore.WHITE
-    l = (
-        Fore.LIGHTBLACK_EX,
-        Fore.LIGHTBLACK_EX,
-        Fore.WHITE,
-        Fore.YELLOW,
-        Fore.RED
-    )
-
-    def __getitem__(self, i):
-        return self.l[i]
-
-_c = Colorama_Helper()
+##-----------------------------------------------------------------------------
+## Globals
+##-----------------------------------------------------------------------------
 
 state = {
     "master_in_file": None,
@@ -112,6 +86,7 @@ rep_dict1 = {
     '[': r'\[',
     ']': r'\]'
 }
+
 rep_dict2 = {
     '{': '(',
     '}': ')',
@@ -150,7 +125,6 @@ command_list = [
     re.compile("^:(else):$"),
     re.compile("^:(nvl):$"),
     re.compile('^:(clear)$'),
-    # re.compile('^:(close)$'),
     re.compile("^:(import)\s+(.*)$"),
     re.compile("^:(file)\s+(.*)$"),
     re.compile("^:(log)\s+(0|1|2|3|4|" \
@@ -159,6 +133,46 @@ command_list = [
     re.compile("^:(config:)$"),
     re.compile("^:(break)$")
 ]
+
+parent_label_re = re.compile("^(\w*)\.?.*$")
+empty_line_re = re.compile("^\s*$")
+comment_re = re.compile("^(\s*)#(.*)$")
+python_re = re.compile("^(\$.*)$")
+command_re = re.compile("^:(.*)$")
+label_or_nvl_re = re.compile("^:(:.*?|nvl):?$")
+
+##-----------------------------------------------------------------------------
+## Helper Classes
+##-----------------------------------------------------------------------------
+
+try:
+    import colorama
+    colorama.init()
+    Fore = colorama.Fore
+    Back = colorama.Back
+    Style = colorama.Style
+except ImportError:
+    class __fake_col__(object):
+        def __getattr__(*a, **kw):
+            return ''
+    Fore = __fake_col__()
+    Back = Fore
+    Style = Fore
+
+
+class Colorama_Helper(object):
+    r = Style.RESET_ALL+Fore.WHITE
+    l = (
+        Fore.LIGHTBLACK_EX,
+        Fore.LIGHTBLACK_EX,
+        Fore.WHITE,
+        Fore.YELLOW,
+        Fore.RED
+    )
+
+    def __getitem__(self, i):
+        return self.l[i]
+_c = Colorama_Helper()
 
 
 class Current_Line_Str(object):
@@ -178,6 +192,22 @@ class Current_Line_Str(object):
 _ln = Current_Line_Str()
 
 
+class Indent_Level_Str(object):
+    def __str__(self):
+        if state["is_nvl_mode"] is False:
+            return '    '*state["file_chain"][-1]["cur_indent"]
+        return '    '*(state["file_chain"][-1]["cur_indent"]-1)
+
+    def __add__(self, other):
+        if issubclass(type(other), str):
+            return str(self)+other
+
+    def __radd__(self, other):
+        if issubclass(type(other), str):
+            return other+str(self)
+_il = Indent_Level_Str()
+
+
 class LOGLEVEL(object):
     ERROR = 4
     WARN = 3
@@ -189,9 +219,13 @@ class LOGLEVEL(object):
 
     def __getitem__(self, i):
         return ('VERB', 'DEBUG', 'INFO', 'WARN', 'ERROR')[i]
-
 LOGLEVEL = LOGLEVEL()
 
+##-----------------------------------------------------------------------------
+## Logger
+##-----------------------------------------------------------------------------
+
+_tmp_log = []
 
 class _Logger(object):
 
@@ -211,7 +245,7 @@ class _Logger(object):
         self.__errors = 0
         self.__warnings = 0
 
-        self.__log = []  # copy.deepcopy(tmp_log)
+        self.__log = []
         self.__log_flush_number = flush_number
         self.__log_count = 0
         _file, _ = path.splitext(path.basename(__file__))
@@ -341,7 +375,7 @@ class _Logger(object):
         self.stats(time.time())
         self.flush()
 
-_tmp_log = []
+
 def log(msg, level=LOGLEVEL.INFO, exit=True):
     msg = _ln+msg
     _tmp_log.append({'time': time.time(), 'level': level, 'message': msg})
@@ -363,6 +397,9 @@ def _log_traceback(exit_code=1):
         LOGLEVEL.ERROR, exit = exit_code)
 log.log_traceback = _log_traceback
 
+##-----------------------------------------------------------------------------
+## Misc Functions
+##-----------------------------------------------------------------------------
 
 def setup_globals(output_path=None, flush_number=10):
     global log, _tmp_log
@@ -384,6 +421,54 @@ def setup_globals(output_path=None, flush_number=10):
         re.compile('^'+regex_prep("*_ignore*")+'$')
     ]
 
+
+def total(itter):
+    _sum = 0
+    for i in itter:
+        _sum += len(i)
+    return _sum
+
+
+def fix_brace(matchobj):
+    _m = matchobj.group(0)
+    if _m in rep_dict3:
+        return rep_dict3[_m]
+    else:
+        log("Failed to match {}".format(_m), LOGLEVEL.WARN)
+        return _m
+
+
+def usage(error=None, exit_code=None):
+    log("Printing usage", LOGLEVEL.VERB)
+    if error:
+        exit_code = exit_code or 2
+        log(error, LOGLEVEL.ERROR, exit=False)
+        print('')
+    print('::'+("-"*77))
+    print("::   Ren'Py Script Builder")
+    print('::'+("-"*77))
+    print('\n  Usage:')
+    print('    {} -h|source [-o:dir] [--flush=value]' \
+          ' [--debug|--verbose]\n\n'.format(path.basename(__file__)))
+    print("   {:>16} :: Print this help message\n".format('[-h|--help]'))
+    print("   {:>16} :: Set the output directory".format('[-o:<dir>]'))
+    print("   {:>16} :: NOTE: Output directory may be overwritten by config" \
+        .format('[--output=<dir>]'))
+    print((" "*20)+"::  options set in the source file.\n")
+    print("   {:>16} :: Print this help message\n".format('[-h|--help]'))
+    print("   {:>16} :: Set logging level to debug".format('[--debug]'))
+    print("   {:>16} :: Set logging level to verbose.".format('[--verbose]'))
+    print((" "*20)+":: "
+        "WARNING: Verbose logging will print a lot of garbage to")
+    print((" "*20)+":: "
+        " the console and create a very large log file. Only use")
+    print((" "*20)+":: "
+        " this option if asked to to do so by the developer.")
+    sys.exit(exit_code)
+
+##-----------------------------------------------------------------------------
+## Regex manager
+##-----------------------------------------------------------------------------
 
 def regex_prep(string):
     log("Preping string for regex: {}".format(string), LOGLEVEL.VERB)
@@ -428,115 +513,9 @@ def prefix_regex(match, replace):
     _m = re.compile('^'+_rep+'\s(.*)')
     state["known_prefix_rep"][_m] = (replace, ' "{}"')
 
-
-def total(itter):
-    _sum = 0
-    for i in itter:
-        _sum += len(i)
-    return _sum
-
-
-def usage(error=None, exit_code=None):
-    log("Printing usage", LOGLEVEL.VERB)
-    if error:
-        exit_code = exit_code or 2
-        log(error, LOGLEVEL.ERROR, exit=False)
-        print('')
-    print('::'+("-"*77))
-    print("::   Ren'Py Script Builder")
-    print('::'+("-"*77))
-    print('\n  Usage:')
-    print('    {} -h|source [-o:dir] [--flush=value]' \
-          ' [--debug|--verbose]\n\n'.format(path.basename(__file__)))
-    print("   {:>16} :: Print this help message\n".format('[-h|--help]'))
-    print("   {:>16} :: Set the output directory".format('[-o:<dir>]'))
-    print("   {:>16} :: NOTE: Output directory may be overwritten by config" \
-        .format('[--output=<dir>]'))
-    print((" "*20)+"::  options set in the source file.\n")
-    print("   {:>16} :: Print this help message\n".format('[-h|--help]'))
-    print("   {:>16} :: Set logging level to debug".format('[--debug]'))
-    print("   {:>16} :: Set logging level to verbose.".format('[--verbose]'))
-    print((" "*20)+":: "
-        "WARNING: Verbose logging will print a lot of garbage to")
-    print((" "*20)+":: "
-        " the console and create a very large log file. Only use")
-    print((" "*20)+":: "
-        " this option if asked to to do so by the developer.")
-    sys.exit(exit_code)
-
-
-def main(argv):
-    global _debug, log
-
-    if not argv:
-        usage("No input script file defined.")
-    if argv[0] in ('-h', '--help'):
-        usage()
-
-    if len(argv) > 1:
-        try:
-            opts, args = getopt.getopt(argv[1:], 'ho:f:',
-                ['help', 'output=', 'flush=', 'debug', 'verbose'])
-        except getopt.GetoptError:
-            usage("Unknown option")
-    else:
-        opts, args = {}, {}
-
-    output_path = None
-    _flush = 10
-    _debug = 0
-
-    if opts:
-        log("Command line arguments: {}".format(opts), LOGLEVEL.VERB)
-    else:
-        log("No additional command line arguments detected", LOGLEVEL.VERB)
-
-    for opt, arg in opts:
-        if opt in ('-h', '--help'):
-            usage()
-        elif opt in ('-o', '--output'):
-            output_path = arg
-        elif opt in ('-f', '--flush'):
-            _flush = int(arg)
-        elif opt == '--debug':
-            if _debug:
-                log("Can not set --debug and --verbose options simultaniously",
-                    LOGLEVEL.WARN)
-            else:
-                _debug = 1
-                log("Debug logging enabled")
-        elif opt == '--verbose':
-            if _debug:
-                log("Can not set --debug and --verbose options simultaniously",
-                    LOGLEVEL.WARN)
-            else:
-                _debug = 2
-                log("Verbose mode is set. This can severly impact the speed "
-                    "and performance of the script and may result in a huge "
-                    "log file.", LOGLEVEL.WARN)
-
-    in_file = path.abspath(path.expanduser(path.expandvars(argv[0])))
-
-    if path.isfile(in_file) is False:
-        log("{} is not an accessible file".format(argv[0]),
-            LOGLEVEL.ERROR, exit = False)
-        try:
-            log("initializing logger", LOGLEVEL.DEBUG)
-            os.chdir(path.dirname(in_file))
-        except:
-            log("Failed to set directory for logger", LOGLEVEL.ERROR)
-        else:
-            log = _Logger(_tmp_log, _flush)
-            sys.exit(1)
-
-    os.chdir(path.dirname(in_file))
-
-    setup_globals(output_path, _flush)
-
-    loop_file(in_file)
-
-    sys.exit()
-
+##-----------------------------------------------------------------------------
+## File manager
+##-----------------------------------------------------------------------------
 
 def loop_file(in_file):
     file = open_file(in_file, "r")
@@ -571,16 +550,12 @@ def open_file(file_path, mode='w'):
         if _path == f.name:
             return f
 
-    # TODO: Fix this so it prints nice.
     _path_for_log = _path.replace(os.getcwd(), '.')
     _mode = {'r': 'READ', 'w': 'WRITE', 'a': 'APPEND'}
     log("Opening new file {} in {} mode".format(_path_for_log, _mode[mode]),
         LOGLEVEL.INFO)
     try:
-        if mode == 'w':
-            file = codecs.open(_path, mode, "utf-8")
-        else:
-            file = codecs.open(_path, 'U'+mode, "utf-8")
+        file = codecs.open(_path, mode, "utf-8")
     except IOError:
         log("Unable to open the file at {}".format(_path_for_log),
             LOGLEVEL.ERROR)
@@ -669,6 +644,9 @@ def write_line(line=None, indent=True, file=None):
 
     stats["out_lines"] += len(line.split('\n'))
 
+##-----------------------------------------------------------------------------
+## Commands
+##-----------------------------------------------------------------------------
 
 def parse_command_block(line):
     log("Parsing next line in command block", LOGLEVEL.VERB)
@@ -680,7 +658,6 @@ def parse_command_block(line):
     parse_command(_m.group(1), _m.groups()[0:], _c[1])
 
 
-parent_label_re = re.compile("^(\w*)\.?.*$")
 def parse_command(command, matches, _re):
     matches = [m.strip() for m in matches[1:]]
     log("Parsing command '{}' {}".format(command, matches), LOGLEVEL.DEBUG)
@@ -868,23 +845,9 @@ def parse_command(command, matches, _re):
         log("Break command encountered", LOGLEVEL.INFO)
         sys.exit()
 
-
-class Indent_Level_Str(object):
-    def __str__(self):
-        if state["is_nvl_mode"] is False:
-            return '    '*state["file_chain"][-1]["cur_indent"]
-        return '    '*(state["file_chain"][-1]["cur_indent"]-1)
-
-    def __add__(self, other):
-        if issubclass(type(other), str):
-            return str(self)+other
-
-    def __radd__(self, other):
-        if issubclass(type(other), str):
-            return other+str(self)
-
-_il = Indent_Level_Str()
-
+##-----------------------------------------------------------------------------
+## Per line functions
+##-----------------------------------------------------------------------------
 
 def indentinator(leading_whitespace):
     log("Performing indentation management", LOGLEVEL.VERB)
@@ -922,20 +885,6 @@ def indentinator(leading_whitespace):
                 state["is_nvl_mode"] += 1
 
 
-def fix_brace(matchobj):
-    _m = matchobj.group(0)
-    if _m in rep_dict3:
-        return rep_dict3[_m]
-    else:
-        log("Failed to match {}".format(_m), LOGLEVEL.WARN)
-        return _m
-
-
-empty_line_re = re.compile("^\s*$")
-comment_re = re.compile("^(\s*)#(.*)$")
-python_re = re.compile("^(\$.*)$")
-command_re = re.compile("^:(.*)$")
-label_or_nvl_re = re.compile("^:(:.*?|nvl):?$")
 def parse_line(line):
     stats["in_lines"] += 1
     _f = state["file_chain"][-1]
@@ -1065,6 +1014,79 @@ def parse_line(line):
         write_line(_nvl+'"{}":'.format(line[:-1]))
     else:
         write_line(_nvl+'"{}"'.format(line))
+
+
+def main(argv):
+    global _debug, log
+
+    if not argv:
+        usage("No input script file defined.")
+    if argv[0] in ('-h', '--help'):
+        usage()
+
+    if len(argv) > 1:
+        try:
+            opts, args = getopt.getopt(argv[1:], 'ho:f:',
+                ['help', 'output=', 'flush=', 'debug', 'verbose'])
+        except getopt.GetoptError:
+            usage("Unknown option")
+    else:
+        opts, args = {}, {}
+
+    output_path = None
+    _flush = 10
+    _debug = 0
+
+    if opts:
+        log("Command line arguments: {}".format(opts), LOGLEVEL.VERB)
+    else:
+        log("No additional command line arguments detected", LOGLEVEL.VERB)
+
+    for opt, arg in opts:
+        if opt in ('-h', '--help'):
+            usage()
+        elif opt in ('-o', '--output'):
+            output_path = arg
+        elif opt in ('-f', '--flush'):
+            _flush = int(arg)
+        elif opt == '--debug':
+            if _debug:
+                log("Can not set --debug and --verbose options simultaniously",
+                    LOGLEVEL.WARN)
+            else:
+                _debug = 1
+                log("Debug logging enabled")
+        elif opt == '--verbose':
+            if _debug:
+                log("Can not set --debug and --verbose options simultaniously",
+                    LOGLEVEL.WARN)
+            else:
+                _debug = 2
+                log("Verbose mode is set. This can severly impact the speed "
+                    "and performance of the script and may result in a huge "
+                    "log file.", LOGLEVEL.WARN)
+
+    in_file = path.abspath(path.expanduser(path.expandvars(argv[0])))
+
+    if path.isfile(in_file) is False:
+        log("{} is not an accessible file".format(argv[0]),
+            LOGLEVEL.ERROR, exit = False)
+        try:
+            log("initializing logger", LOGLEVEL.DEBUG)
+            os.chdir(path.dirname(in_file))
+        except:
+            log("Failed to set directory for logger", LOGLEVEL.ERROR)
+        else:
+            log = _Logger(_tmp_log, _flush)
+            sys.exit(1)
+
+    os.chdir(path.dirname(in_file))
+
+    setup_globals(output_path, _flush)
+
+    loop_file(in_file)
+
+    sys.exit()
 
 
 def cleanup():
