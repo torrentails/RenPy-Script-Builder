@@ -183,12 +183,16 @@ class Current_Line_Str(object):
         return '<init> '
 
     def __add__(self, other):
-        if issubclass(type(other), str):
+        if issubclass(type(other), (str, unicode)):
             return str(self)+other
+        raise TypeError("unsupported operand type(s) for +:"
+            " 'str' and '{}'".format(type(other).__name__))
 
     def __radd__(self, other):
-        if issubclass(type(other), str):
+        if issubclass(type(other), (str, unicode)):
             return other+str(self)
+        raise TypeError("unsupported operand type(s) for +:"
+            " '{}' and 'str'".format(type(other).__name__))
 _ln = Current_Line_Str()
 
 
@@ -199,12 +203,16 @@ class Indent_Level_Str(object):
         return '    '*(state["file_chain"][-1]["cur_indent"]-1)
 
     def __add__(self, other):
-        if issubclass(type(other), str):
+        if issubclass(type(other), (str, unicode)):
             return str(self)+other
+        raise TypeError("unsupported operand type(s) for +:"
+            " 'str' and '{}'".format(type(other).__name__))
 
     def __radd__(self, other):
-        if issubclass(type(other), str):
+        if issubclass(type(other), (str, unicode)):
             return other+str(self)
+        raise TypeError("unsupported operand type(s) for +:"
+            " '{}' and 'str'".format(type(other).__name__))
 _il = Indent_Level_Str()
 
 
@@ -442,7 +450,7 @@ def usage(error=None, exit_code=None):
     log("Printing usage", LOGLEVEL.VERB)
     if error:
         exit_code = exit_code or 2
-        log(error, LOGLEVEL.ERROR, exit=False)
+        log(str(error), LOGLEVEL.ERROR, exit=False)
         print('')
     print('::'+("-"*77))
     print("::   Ren'Py Script Builder")
@@ -888,8 +896,7 @@ def indentinator(leading_whitespace):
 def parse_line(line):
     stats["in_lines"] += 1
     _f = state["file_chain"][-1]
-    log("Parsing Line:\n{:>5}|{}".format(
-        _f["cur_line"], line.strip()), LOGLEVEL.VERB)
+    log('Parsing Line: "{}"'.format(line.strip()), LOGLEVEL.VERB)
 
     if empty_line_re.match(line):
         write_line()
@@ -1015,26 +1022,28 @@ def parse_line(line):
     else:
         write_line(_nvl+'"{}"'.format(line))
 
+##-----------------------------------------------------------------------------
+## Main execution
+##-----------------------------------------------------------------------------
 
 def main(argv):
     global _debug, log
 
     if not argv:
         usage("No input script file defined.")
-    if argv[0] in ('-h', '--help'):
+    if '-h' in argv or '--help' in argv:
         usage()
 
     if len(argv) > 1:
         try:
-            opts, args = getopt.getopt(argv[1:], 'ho:f:',
-                ['help', 'output=', 'flush=', 'debug', 'verbose'])
-        except getopt.GetoptError:
-            usage("Unknown option")
+            opts, args = getopt.getopt(argv[1:], 'ho:',
+                ['help', 'output=', 'debug', 'verbose'])
+        except getopt.GetoptError as e:
+            usage(str(e))
     else:
         opts, args = {}, {}
 
     output_path = None
-    _flush = 10
     _debug = 0
 
     if opts:
@@ -1043,12 +1052,8 @@ def main(argv):
         log("No additional command line arguments detected", LOGLEVEL.VERB)
 
     for opt, arg in opts:
-        if opt in ('-h', '--help'):
-            usage()
-        elif opt in ('-o', '--output'):
+        if opt in ('-o', '--output'):
             output_path = arg
-        elif opt in ('-f', '--flush'):
-            _flush = int(arg)
         elif opt == '--debug':
             if _debug:
                 log("Can not set --debug and --verbose options simultaniously",
@@ -1077,12 +1082,12 @@ def main(argv):
         except:
             log("Failed to set directory for logger", LOGLEVEL.ERROR)
         else:
-            log = _Logger(_tmp_log, _flush)
+            log = _Logger(_tmp_log)
             sys.exit(1)
 
     os.chdir(path.dirname(in_file))
 
-    setup_globals(output_path, _flush)
+    setup_globals(output_path)
 
     loop_file(in_file)
 
