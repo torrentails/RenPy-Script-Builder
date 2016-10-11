@@ -22,7 +22,7 @@ import codecs
 from os import path
 from functools import reduce
 
-__version__ = "0.5.6"
+__version__ = "0.5.7"
 __author__ = "Nathan Sullivan"
 __email__ = "contact@torrentails.com"
 __license__ = "MIT"
@@ -139,7 +139,7 @@ empty_line_re = re.compile("^\s*$")
 comment_re = re.compile("^(\s*)#(.*)$")
 python_re = re.compile("^(\$.*)$")
 command_re = re.compile("^:(.*)$")
-label_or_nvl_re = re.compile("^:(:.*?|nvl):?$")
+# label_or_nvl_re = re.compile("^:(:.*?|nvl):?$")
 
 ##-----------------------------------------------------------------------------
 ## Helper Classes
@@ -680,6 +680,8 @@ def parse_command(command, matches, _re):
     # ^:(l:)$
     elif command == "l:":
         log("command: Line replacement block", LOGLEVEL.DEBUG)
+        log("New indent is now expected", LOGLEVEL.VERB)
+        _f["new_indent"] = 1
         _f["command_block"] = True
         _f["command"] = ('l', _re)
 
@@ -691,6 +693,8 @@ def parse_command(command, matches, _re):
     # ^:(p:)$
     elif command == "p:":
         log("command: Prefix replacement block", LOGLEVEL.DEBUG)
+        log("New indent is now expected", LOGLEVEL.VERB)
+        _f["new_indent"] = 1
         _f["command_block"] = True
         _f["command"] = ('p', _re)
 
@@ -770,26 +774,36 @@ def parse_command(command, matches, _re):
     # ^:(m):$
     elif command == "m":
         log("command: New menu block", LOGLEVEL.DEBUG)
+        log("New indent is now expected", LOGLEVEL.VERB)
+        _f["new_indent"] = 1
         write_line('menu:')
 
     # ^:(if)\s*(.*?):$
     elif command == "if":
         log("command: if statement", LOGLEVEL.DEBUG)
+        log("New indent is now expected", LOGLEVEL.VERB)
+        _f["new_indent"] = 1
         write_line('if '+matches[0]+':')
 
     # ^:(elif)\s*(.*?):$
     elif command == "elif":
         log("command: elif statement", LOGLEVEL.DEBUG)
+        log("New indent is now expected", LOGLEVEL.VERB)
+        _f["new_indent"] = 1
         write_line('elif '+matches[0]+':')
 
     # ^:(else):$
     elif command == "else":
         log("command: else statement", LOGLEVEL.DEBUG)
+        log("New indent is now expected", LOGLEVEL.VERB)
+        _f["new_indent"] = 1
         write_line('else:')
 
     # ^:(nvl):$
     elif command == "nvl":
         log("command: New NVL block", LOGLEVEL.DEBUG)
+        log("New indent is now expected", LOGLEVEL.VERB)
+        _f["new_indent"] = 1
         state["is_nvl_mode"] = True
         # state["next_indent_is_ignored"] = True
 
@@ -845,6 +859,8 @@ def parse_command(command, matches, _re):
     # ^:(config:)$
     elif command == "config:":
         log("command: Config block", LOGLEVEL.DEBUG)
+        log("New indent is now expected", LOGLEVEL.VERB)
+        _f["new_indent"] = 1
         _f["command_block"] = True
         _f["command"] = ('config', _re)
 
@@ -924,18 +940,28 @@ def parse_line(line):
             LOGLEVEL.ERROR)
 
     _f["prev_indent"] = _f["cur_indent"]
-
-    log("Checking for new indent", LOGLEVEL.VERB)
-    if line[-1] == ':':
-        log("New indent is now expected", LOGLEVEL.VERB)
-        _f["new_indent"] = 1
-    else:
-        _f["new_indent"] = 0
+    _f["new_indent"] = 0
 
     # Inside command block
     if _f["command_block"]:
         parse_command_block(line.replace('"', r'\"'))
         return
+
+    # Commands
+    log("Checking for command", LOGLEVEL.VERB)
+    for i in range(len(command_list)):
+        _m = command_list[i].match(line.replace('"', r'\"'))
+        if _m:
+            if _m.group(1) == ':' and line[-1] == ':':
+                log("New indent is now expected", LOGLEVEL.VERB)
+                _f["new_indent"] = 1
+            parse_command(_m.group(1), _m.groups()[0:], command_list[i-1])
+            return
+
+    log("Checking for new indent", LOGLEVEL.VERB)
+    if line[-1] == ':':
+        log("New indent is now expected", LOGLEVEL.VERB)
+        _f["new_indent"] = 1
 
     # $ starting python lines
     _m = python_re.match(line)
@@ -945,14 +971,6 @@ def parse_line(line):
         return
 
     line = line.replace('"', r'\"')
-
-    # Commands
-    log("Checking for command", LOGLEVEL.VERB)
-    for i in range(len(command_list)):
-        _m = command_list[i].match(line)
-        if _m:
-            parse_command(_m.group(1), _m.groups()[0:], command_list[i-1])
-            return
 
     # Line replacement
     log("Checking for line replacement", LOGLEVEL.VERB)
