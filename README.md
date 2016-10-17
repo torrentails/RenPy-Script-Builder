@@ -448,18 +448,24 @@ Syntax Reference
 | key | Definition |
 |:--- |:---------- |
 | `:` | Start command |
-| `:l find = replace` | Entire line find and replace |
-| `:l:` | Entire line find and replace (multiple) |
-| `:p find = replace` | Prefix find and replace |
-| `:p:` | Prefix find and replace (multiple) |
+| `:regex find = replace` | Entire line find and replace |
+| `:regex:` | Entire line find and replace (multiple) |
 | `::label_name` | Label |
 | `:sc scene` | Show scene |
 | `:s image` | Show image |
 | `:w transition` | With transition |
+| `:p channel sound` | Plays sound on channel |
+| `:pm music` | Shortcut for playing music on the `music` channel |
+| `:ps sound` | Shortcut for playing sound on the `sound` channel |
+| `:pv voice` | Shortcut for playing voice on the `voice` channel |
+| `:pa audio` | Shortcut for playing audio on the `audio` channel |
+| `:v voice` | Plays a voice |
+| `:q channel sound` | Queues sound up on the named channel |
+| `:stop channel` | Stops playing audio on the named channel |
 | `:c label` | Call label |
 | `:j label` | Jump to label |
 | `:r` | Return |
-| `:m:` | Create menu dialogue |
+| `:choice:` | Create menu dialogue |
 | `:if condition:` | if statement |
 | `:elif condition:` | elif statement |
 | `:else:` | else statement |

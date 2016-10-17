@@ -22,7 +22,7 @@ import codecs
 from os import path
 from functools import reduce
 
-__version__ = "0.5.7"
+__version__ = "0.6.0"
 __author__ = "Nathan Sullivan"
 __email__ = "contact@torrentails.com"
 __license__ = "MIT"
@@ -39,7 +39,8 @@ state = {
     "control_file": None,
     "open_files": set(),
     "known_line_rep": {},
-    "known_prefix_rep": {},
+    "known_character_rep": {},
+    # "known_replacements": {},
     "file_chain": [],
     "parent_labels": set(),
     "is_nvl_mode": False,
@@ -67,7 +68,7 @@ stats = {
     "out_lines": 0,
     "commands_processed": 0,
     "line_replacements": 0,
-    "prefix_replacements": 0,
+    "character_replacements": 0,
     "narration_lines": 0,
     "dialogue_lines": 0,
     "start_time": time.time()
@@ -107,19 +108,27 @@ rep_dict2 = {
 rep_dict3 = {r'\{': '\xc0', r'\}': '\xc1', '\xc0': '{', '\xc1': '}'}
 
 command_list = [
-    re.compile("^:(l)\s+(.*?)\s*=\s*(.*)$"),
-    re.compile("^:(l:)$"),
-    re.compile("^:(p)\s+(.*?)\s*=\s*(.*)$"),
-    re.compile("^:(p:)$"),
+    re.compile("^:(line)\s+(.*?)\s*=\s*(.*)$"),
+    re.compile("^:(line:)$"),
+    re.compile("^:(character)\s+(.*?)\s*=\s*(.*)$"),
+    re.compile("^:(character:)$"),
     re.compile("^:(:)\s*(\.?.*?):?$"),
     re.compile("^:(sc)\s+(.*)$"),
     re.compile("^:(s)\s+(.*)$"),
     re.compile("^:(w)\s+(.*)$"),
+    re.compile("^:(p)\s+(.*?)\s+(.*)$"),
+    re.compile("^:(pm)\s+(.*)$"),
+    re.compile("^:(ps)\s+(.*)$"),
+    re.compile("^:(pv)\s+(.*)$"),
+    re.compile("^:(pa)\s+(.*)$"),
+    re.compile("^:(v)\s+(.*)$"),
+    re.compile("^:(q)\s+(.*?)\s+(.*)$"),
+    re.compile("^:(stop)\s*(.*)?$"),
     re.compile("^:(c)\s+(.*)$"),
     re.compile("^:(j)\s+(.*)$"),
     re.compile("^:(r)$"),
     re.compile("^:(r)\s+(.*)$"),
-    re.compile("^:(m):$"),
+    re.compile("^:(choice):$"),
     re.compile("^:(if)\s+(.*?):$"),
     re.compile("^:(elif)\s+(.*?):$"),
     re.compile("^:(else):$"),
@@ -353,7 +362,7 @@ class _Logger(object):
             "out_lines",
             "commands_processed",
             "line_replacements",
-            "prefix_replacements",
+            "character_replacements",
             "narration_lines",
             "dialogue_lines"
         )
@@ -513,13 +522,22 @@ def line_regex(match, replace):
     state["known_line_rep"][_m] = replace
 
 
-def prefix_regex(match, replace):
-    log("Building prefix replacement regex: {} = {}".format(match,
+def character_regex(match, replace):
+    log("Building character replacement regex: {} = {}".format(match,
         replace), LOGLEVEL.DEBUG)
     _rep = regex_prep(match)
     log("Regex result: {}".format(_rep), LOGLEVEL.DEBUG)
     _m = re.compile('^'+_rep+'\s(.*)')
-    state["known_prefix_rep"][_m] = (replace, ' "{}"')
+    state["known_character_rep"][_m] = (replace, ' "{}"')
+
+
+# def build_regex(match, replace):
+#     log("Building replacement regex: {} = {}".format(match,
+#         replace), LOGLEVEL.DEBUG)
+#     _rep = regex_prep(match)
+#     log("Regex result: {}".format(_rep), LOGLEVEL.DEBUG)
+#     _m = re.compile('^'+_rep+'\s*(.*)?')
+#     state["known_replacements"][_m] = (replace, ' "{}"')
 
 ##-----------------------------------------------------------------------------
 ## File manager
@@ -672,31 +690,47 @@ def parse_command(command, matches, _re):
     stats["commands_processed"] += 1
     _f = state['file_chain'][-1]
 
-    # ^:(l)\s*(.*?)=\s?(.*)$
-    if command == "l":
+    def _write_play(channel, sound):
+        write_line("play "+channel+' '+sound)
+
+    # # ^:(l)\s*(.*?)=\s?(.*)$
+    # if command == "regex":
+    #     log("command: New replacement", LOGLEVEL.DEBUG)
+    #     build_regex(matches[0], matches[1])
+
+    # # ^:(l:)$
+    # elif command == "regex:":
+    #     log("command: replacement block", LOGLEVEL.DEBUG)
+    #     log("New indent is now expected", LOGLEVEL.VERB)
+    #     _f["new_indent"] = 1
+    #     _f["command_block"] = True
+    #     _f["command"] = ('regex', _re)
+
+    # ^:(line)\s*(.*?)=\s?(.*)$
+    if command == "line":
         log("command: New line replacement", LOGLEVEL.DEBUG)
         line_regex(matches[0], matches[1])
 
-    # ^:(l:)$
-    elif command == "l:":
+    # ^:(line:)$
+    elif command == "line:":
         log("command: Line replacement block", LOGLEVEL.DEBUG)
         log("New indent is now expected", LOGLEVEL.VERB)
         _f["new_indent"] = 1
         _f["command_block"] = True
-        _f["command"] = ('l', _re)
+        _f["command"] = ('line', _re)
 
-    # ^:(p)\s*(.*?)=\s?(.*)$
-    if command == "p":
-        log("command: New prefix replacement", LOGLEVEL.DEBUG)
-        prefix_regex(matches[0], matches[1])
+    # ^:(character)\s*(.*?)=\s?(.*)$
+    if command == "character":
+        log("command: New character replacement", LOGLEVEL.DEBUG)
+        character_regex(matches[0], matches[1])
 
-    # ^:(p:)$
-    elif command == "p:":
-        log("command: Prefix replacement block", LOGLEVEL.DEBUG)
+    # ^:(character:)$
+    elif command == "character:":
+        log("command: Character replacement block", LOGLEVEL.DEBUG)
         log("New indent is now expected", LOGLEVEL.VERB)
         _f["new_indent"] = 1
         _f["command_block"] = True
-        _f["command"] = ('p', _re)
+        _f["command"] = ('character', _re)
 
     # ^:(:)\s+(\.?[\w\.]*)$
     # TODO: Move all of this to another function and fix it up
@@ -732,8 +766,9 @@ def parse_command(command, matches, _re):
         # Build label chain links
         # TODO: Fix this mess up
         if matches[0][0] != '.':
-            if matches[0].split('.')[0] not in _f["label_chain"]:
-                _f["label_chain"].append(matches[0].split('.')[0])
+            _parent = matches[0].split('.')[0]
+            if _parent not in _f["label_chain"]:
+                _f["label_chain"].append(_parent)
                 # log(_f["label_chain"])
 
     # ^:(sc)\s*(\w*)$
@@ -750,6 +785,46 @@ def parse_command(command, matches, _re):
     elif command == "w":
         log("command: With", LOGLEVEL.DEBUG)
         write_line('with '+matches[0])
+
+    # ^:(p)\s+(.*?)\s+(.*)$
+    elif command == "p":
+        log("command: Play", LOGLEVEL.DEBUG)
+        _write_play(matches[0], matches[1])
+
+    # ^:(pm)\s+(.*)$
+    elif command == "pm":
+        log("command: Play music", LOGLEVEL.DEBUG)
+        _write_play("music", matches[0])
+
+    # ^:(ps)\s+(.*)$
+    elif command == "ps":
+        log("command: Play sound", LOGLEVEL.DEBUG)
+        _write_play("sound", matches[0])
+
+    # ^:(pv)\s+(.*)$
+    elif command == "pv":
+        log("command: Play voice", LOGLEVEL.DEBUG)
+        _write_play("voice", matches[0])
+
+    # ^:(pa)\s+(.*)$
+    elif command == "pa":
+        log("command: Play audio", LOGLEVEL.DEBUG)
+        _write_play("audio", matches[0])
+
+    # ^:(v)\s+(.*)$
+    elif command == "v":
+        log("command: Voice", LOGLEVEL.DEBUG)
+        write_line("voice "+matches[0])
+
+    # ^:(q)\s+(.*?)\s+(.*)$
+    elif command == "q":
+        log("command: Queue", LOGLEVEL.DEBUG)
+        write_line("queue "+matches[0]+' '+matches[1])
+
+    # ^:(stop)\s*(.*)?$
+    elif command == "stop":
+        log("command: Stop", LOGLEVEL.DEBUG)
+        write_line("stop "+matches[0])
 
     # ^:(c)\s*(\w*)$
     elif command == "c":
@@ -771,8 +846,8 @@ def parse_command(command, matches, _re):
         else:
             write_line('return')
 
-    # ^:(m):$
-    elif command == "m":
+    # ^:(choice):$
+    elif command == "choice":
         log("command: New menu block", LOGLEVEL.DEBUG)
         log("New indent is now expected", LOGLEVEL.VERB)
         _f["new_indent"] = 1
@@ -989,19 +1064,19 @@ def parse_line(line):
                 #     v, _m.groups()), LOGLEVEL.ERROR)
             return
 
-    # Prefix Replacement
-    log("Checking for prefix replacement", LOGLEVEL.VERB)
-    for k, v in state["known_prefix_rep"].items():
+    # Character Replacement
+    log("Checking for character replacement", LOGLEVEL.VERB)
+    for k, v in state["known_character_rep"].items():
         _m = k.match(line)
         if _m:
-            log("Prefix replacement match", LOGLEVEL.VERB)
+            log("Character replacement match", LOGLEVEL.VERB)
             _s = re.sub('\\\\{|\\\\}', fix_brace, v[0])
             if state["is_nvl_mode"]:
                 _n = config["nvl_prefix"]+_s+config["nvl_suffix"]
                 _line = ''.join((_n, v[1]))
             else:
                 _line = ''.join(v)
-            stats["prefix_replacements"] += 1
+            stats["character_replacements"] += 1
             stats["dialogue_lines"] += 1
             try:
                 _line = _line.format(*_m.groups())

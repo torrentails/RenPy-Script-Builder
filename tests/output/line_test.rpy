@@ -23,8 +23,8 @@ return
 
 label .order:
     
-Line order 03 (*)
-Line order 03 (*)
-Line order 03 (*)
+Line order 01 (+)
+Line order 02 (?)
+Line order 02 (?)
 return
 

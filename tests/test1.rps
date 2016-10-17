@@ -21,7 +21,7 @@
 ::line_test
 
 # TEST: line replacement (single)
-:l LineRep_01 = Line replacement 01
+:line LineRep_01 = Line replacement 01
 
 # TEST: sub label, with parent (non-block)
 ::line_test.single
@@ -30,7 +30,7 @@ LineRep_01
 :r
 
 # TEST: line replacement (block)
-:l:
+:line:
     # TEST: single character replacement
     LineRep_02(?) = Line replacement 02
     # TEST: one or more character replacement
@@ -65,7 +65,7 @@ Line_Rep_08(xyz)
 :r
 
 ::.order
-:l:
+:line:
     # TEST: line replacement order
     LineOrder(+) = Line order 01 (+)
     LineOrder(?) = Line order 02 (?)
@@ -79,55 +79,80 @@ LineOrder()
 :r
 
 # TEST: parent label (non-block)
-::prefix_test:
+::character_test:
 
-    # TEST: prefix replacement (single)
-    :p prefix_01; = PREFIX_01
+    # TEST: character replacement (single)
+    :character character_01; = CHARACTER_01
 
     # TEST: sub label, with parent (block)
-    ::line_test.single:
-        # TEST: single prefix replacement
-        prefix_01; Hello, World!
-
-    # TEST: prefix replacement (block)
-    :p:
+    ::character_test.single:
         # TEST: single character replacement
-        prefix_02?; = PREFIX_02
-        # TEST: one or more character replacement
-        prefix_03+; = PREFIX_03
-        # TEST: zero or more character replacement
-        prefix_04*; = PREFIX_04
-        # TEST: zero or more character replacement with capture
-        prefix_05{*}; = PREFIX_05 ({})
-        # TEST: escapes
-        prefix_06\\\{\?\+\*\}; = PREFIX_06
-        # TEST: multiple wildcards
-        pre?fix_*07+; = PREFIX_07
-        # TEST: multiple wildcards with captures
-        pre{?}fix_{*}08{+}; = PRE{}FIX_{}08{}
+        character_01; Hello, World!
 
-    # TEST: block prefix replacements
+    # TEST: character replacement (block)
+    :character:
+        # TEST: single character replacement
+        character_02?; = CHARACTER_02
+        # TEST: one or more character replacement
+        character_03+; = CHARACTER_03
+        # TEST: zero or more character replacement
+        character_04*; = CHARACTER_04
+        # TEST: zero or more character replacement with capture
+        character_05{*}; = CHARACTER_05 ({})
+        # TEST: escapes
+        character_06\\\{\?\+\*\}; = CHARACTER_06
+        # TEST: multiple wildcards
+        chara?cter_*07+; = CHARACTER_07
+        # TEST: multiple wildcards with captures
+        chara{?}cter_{*}08{+}; = CHARA{}CTER_{}08{}
+
+    # TEST: block character replacements
     ::.block:
-        # TEST: block prefix replacements
-        prefix_02a; foobar1 a
-        prefix_02; foobar1 None
-        prefix_03abc; foobar2 abc
-        prefix_04xyz; foobar3 xyz
-        prefix_04; foobar3 None
-        prefix_05gg; foobar4
-        prefix_05; foobar4
-        prefix_06\{?+*}; foobar5
-        pre_fix_$@07a; foobar6
-        prefix_07abc; foobar6
-        pre_fix_xy08zz; foobar7
-        prefix_ab08cd; foobar7
-        preqfix_08ef; foobar7
+        # TEST: block character replacements
+        character_02a; foobar1 a
+        character_02; foobar1 None
+        character_03abc; foobar2 abc
+        character_04xyz; foobar3 xyz
+        character_04; foobar3 None
+        character_05gg; foobar4
+        character_05; foobar4
+        character_06\{?+*}; foobar5
+        chara_cter_$@07a; foobar6
+        character_07abc; foobar6
+        chara_cter_xy08zz; foobar7
+        character_ab08cd; foobar7
+        charaQcter_08ef; foobar7
         :r
 
+::audio:
+    ::.play:
+        # TEST: play
+        :p my_channel "my_sound.ogg"
+        # TEST: play music
+        :pm "music.ogg" fadeout 1.0
+        # TEST: play sound
+        :ps ["sound.ogg", "sound_1.ogg"]
+        # TEST: play voice
+        :pv "voice.ogg"
+        # TEST: play audio
+        :pa "audio.ogg"
+
+    ::.voice:
+        # TEST: voice
+        :v "voice.ogg"
+
+    ::.queue:
+        # TEST: queue
+        :q music "music_2.ogg"
+
+    ::.stop:
+        # TEST: stop
+        :stop music
+
 ::flow_control:
-    ::.menu:
-        # TEST: menu
-        :m:
+    ::.choice:
+        # TEST: choice
+        :choice:
             This is accompanying narration
             This is the first choice:
                 # TEST: jump

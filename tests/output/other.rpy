@@ -17,13 +17,14 @@ label other:
         return
         
     label .nvl:
+        play char: = CHARACTER
         "This narration is in ADV mode"
-        CHARACTER "This dialog line is in ADV mode"
+        "char: This dialog line is in ADV mode"
         NVL_test "This narration is in NVL mode"
-        nvl_CHARACTER_NVL_test "This dialog line is in NVL mode"
+        NVL_test "char: This dialog line is in NVL mode"
         nvl clear
         NVL_test "This NVL line is on the next page"
-        CHARACTER "This line will be in ADV mode again"
+        "char: This line will be in ADV mode again"
         return
         
     label .misc:

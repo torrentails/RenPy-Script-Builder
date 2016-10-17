@@ -1,5 +1,5 @@
 label flow_control:
-    label .menu:
+    label .choice:
         menu:
             "This is accompanying narration"
             "This is the first choice":
