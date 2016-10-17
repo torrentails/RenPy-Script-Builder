@@ -22,10 +22,11 @@ Table of Contents
   - [Comments](#comments)
   - [Blocks](#blocks)
   - [Commands](#commands)
-    - [Line and Prefix Replacement](#line-and-prefix-replacement)
+    - [Line and Character Replacements](#line-and-character-replacements)
       - [Wild card Matches and Regex](#wild-card-matches-and-regex)
     - [Labels](#labels)
     - [Scene, Show and With](#scene-show-and-with)
+    - [Music and sound](#music-and-sound)
     - [Flow control](#flow-control)
     - [Choices](#choices)
     - [if, elif and else](#if-elif-and-else)
@@ -95,48 +96,48 @@ You can use this output pure code into the output file.
 		new_chars.append(char + "_happy")
 ```
 
-### Line and Prefix Replacement
+### Line and Character Replacement
 
 ```html
-:l find = replace
-:p find_prefix = replace
+:line find = replace
+:character find_character = replace
 
-:l:
+:line:
 	find = replace
 	...
-:p:
-	find_prefix = replace
+:character:
+	find_character = replace
 	...
 ```
 
 These commands focus on replacing certain elements in each line.
 
-- `:l find = replace` defines a line replacement; if an entire line comprises of `find` it will be replaced by `replace`
+- `:line find = replace` defines a line replacement; if an entire line comprises of `find` it will be replaced by `replace`
 
     Example:
-    `:l tr_fade = with Fade(0.33)` will look for lines that consist only of `tr_fade` and replace that line with `with Fade(0.33)` in the output.
-- `:p find = replace` defines a prefix replacement. The interpreter scans the beginning of the line, looking for `find` followed by a space and replaces it with `replace`.
+    `:line tr_fade = with Fade(0.33)` will look for lines that consist only of `tr_fade` and replace that line with `with Fade(0.33)` in the output.
+- `:character find = replace` defines a character replacement. The interpreter scans the beginning of the line, looking for `find` followed by a space and replaces it with `replace`.
     Use this for character prefixes on spoken script lines.
 
     Example:
-    `:p m: = Mick` will look at the beginning of each line and replace `m:` with `Mick` before quoting the rest of the string so that `m: Hello, World!` becomes `Mick "Hello, World!"` in the output.
+    `:character m: = Mick` will look at the beginning of each line and replace `m:` with `Mick` before quoting the rest of the string so that `m: Hello, World!` becomes `Mick "Hello, World!"` in the output.
 
 To define multiple replacements in a single go, you can instead place a `:` at the end of the command and list your replacements in a block following it. Example:
 
 ```html
-:l:
+:line:
     tr_dis = with dissolve
     tr_fade = with Fade(0.75)
     park = scene bg park
 
-:p:
+:character:
     d: = David
     a: = Annie
 ```
 
-You can specify multi-line replacements using `{n}`
+You can specify multi-line replacements using `\n`
 ```html
-:l dorm = scene bg dorm{n}with dissolve
+:line dorm = scene bg dorm\nwith dissolve
 ```
 becomes
 ```renpy
@@ -146,10 +147,10 @@ with dissolve
 
 Substitutions are quite flexible and can even be used to create new commands and/or replace otherwise odd strings.
 ```html
-:l:
+:line:
 	:dance = $ dance_func()
-	>> {+} = scene {}{n}with time_skip_short
-	>>> {+} = scene {}{n}with time_skip_long
+	>> {+} = scene {}\nwith time_skip_short
+	>>> {+} = scene {}\nwith time_skip_long
 ```
 
 #### Wild card Matches and Regex
@@ -157,15 +158,15 @@ Substitutions are quite flexible and can even be used to create new commands and
 Wild cards can be used to match slightly varying strings.
 
 - `?` will match 1 or 0 characters
-  `:l some?thing` will match `something` and `some_thing` but not `some other thing`
+  `:line some?thing` will match `something` and `some_thing` but not `some other thing`
 - `*` will match any number of character, including 0
-  `:l some*thing` will match each of `something`, `some_thing` and `some other thing`
+  `:line some*thing` will match each of `something`, `some_thing` and `some other thing`
 - `+` will match any number of character but will always match at least 1.
-  `:l some+thing` will match `some_thing` and `some other thing` but not `something`
+  `:line some+thing` will match `some_thing` and `some other thing` but not `something`
 
 You can use `{}` to capture a wild card match and substitute it into the output using `{}` where n is the matched group. **Note:** This is different than in python, where `()` are normally used to capture matches, instead here, `{}` are used.
 ```html
-:l dis({+}) = with Dissolve({})
+:line dis({+}) = with Dissolve({})
 dis(0.75)
 ```
 becomes
@@ -173,10 +174,10 @@ becomes
 with Dissolve(0.75)
 ```
 
-Substitutions will match in order, so `:l foo{*}bar{*} = $ some_func({},{})` will substitute the first parameter with the match following `foo` and the second parameter will be substituted with the match following `bar`
+Substitutions will match in order, so `:line foo{*}bar{*} = $ some_func({},{})` will substitute the first parameter with the match following `foo` and the second parameter will be substituted with the match following `bar`
 
 You can control this behaviour by using numbered substitutions in the replacement string `{n}` where `n` is the match group.
-Using the above example `:l foo{*}bar{*} = $ some_func({0},{1})` now substitutes the first parameter with the match following bar and the second with the match following foo.
+Using the above example `:line foo{*}bar{*} = $ some_func({0},{1})` now substitutes the first parameter with the match following bar and the second with the match following foo.
 **Note:** Substitutions are zero indexed as in python, so `{0}` is the first match, `{1]` is the second and so on.
 
 If you need to have any of `?*+{}` or `\` in your match string, you must prefix it with a `\`. The same goes for if you wish to have `{}` or `\` in your replacement string.
@@ -255,6 +256,31 @@ Transitions can easily be done also using `:w transition` where `transition` is 
 :w Dissolve(1.25)
 ```
 
+### Music and sound
+
+```html
+:p channel audio [clause]
+:pm music [clause]
+:ps sound [clause]
+:pa audio [clause]
+:v voice
+:stop channel [clause]
+```
+
+To play music and sounds use the `:p channel audio` where `channel` is the channel to play the `audio` on. You can optionally specify a clause to add, such as `fadein` or `loop` to the end of the command.
+
+`:pm` `:ps` and `:pa` are simply syntactic sugar for playing audio on the respective channel.
+For example the following are equivalent:
+- `:pm some_music fadein 1.2` <-> `:p music some_music fadein 1.5`
+- `:ps a_sound` <-> `:p sound a_sound`
+- `:pa "bang.ogg"` <-> `:p audio "bang.ogg"`
+
+To stop a channel from playing audio, simply use `:stop channel_to_stop`
+
+The `:v voice` command can be used to play a voice along with a line of dialogue.
+
+**Note:** when specifying an audio file, you must enclose the file name in quotes as the parser won't do this for you.
+
 ### Flow control
 
 ```html
@@ -273,14 +299,14 @@ When calling another label though, it is expected to `return` at the end of the 
 ### Choices
 
 ```html
-:m:
+:choice:
 ```
 
 Choices are an important part of almost any visual novel and in Ren'Py this is accomplished through the `menu:` keyword.
 
-The choice dialogue is crafted in the same way as in Ren'Py using `:m`
+The choice dialogue is crafted in the same way as in Ren'Py using `:choice`
 ```html
-:m:
+:choice:
 	d: This is a bit of dialogue accompanying the choice
 	This is the first choice:
 		:c choice1
@@ -448,17 +474,18 @@ Syntax Reference
 | key | Definition |
 |:--- |:---------- |
 | `:` | Start command |
-| `:regex find = replace` | Entire line find and replace |
-| `:regex:` | Entire line find and replace (multiple) |
+| `:line find = replace` | Entire line find and replace |
+| `:line:` | Entire line find and replace (multiple) |
+| `:character find = replace` | Character (line prefix) find and replace |
+| `:character:` | Character (line prefix) find and replace (multiple) |
 | `::label_name` | Label |
 | `:sc scene` | Show scene |
 | `:s image` | Show image |
 | `:w transition` | With transition |
 | `:p channel sound` | Plays sound on channel |
-| `:pm music` | Shortcut for playing music on the `music` channel |
-| `:ps sound` | Shortcut for playing sound on the `sound` channel |
-| `:pv voice` | Shortcut for playing voice on the `voice` channel |
-| `:pa audio` | Shortcut for playing audio on the `audio` channel |
+| `:pm music` | Short cut for playing music on the `music` channel |
+| `:ps sound` | Short cut for playing sound on the `sound` channel |
+| `:pa audio` | Short cut for playing audio on the `audio` channel |
 | `:v voice` | Plays a voice |
 | `:q channel sound` | Queues sound up on the named channel |
 | `:stop channel` | Stops playing audio on the named channel |

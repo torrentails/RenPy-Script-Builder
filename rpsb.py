@@ -22,7 +22,7 @@ import codecs
 from os import path
 from functools import reduce
 
-__version__ = "0.6.0"
+__version__ = "0.6.2"
 __author__ = "Nathan Sullivan"
 __email__ = "contact@torrentails.com"
 __license__ = "MIT"
@@ -40,11 +40,9 @@ state = {
     "open_files": set(),
     "known_line_rep": {},
     "known_character_rep": {},
-    # "known_replacements": {},
     "file_chain": [],
     "parent_labels": set(),
     "is_nvl_mode": False,
-    # "next_indent_is_ignored": False
 }
 
 config = {
@@ -119,7 +117,6 @@ command_list = [
     re.compile("^:(p)\s+(.*?)\s+(.*)$"),
     re.compile("^:(pm)\s+(.*)$"),
     re.compile("^:(ps)\s+(.*)$"),
-    re.compile("^:(pv)\s+(.*)$"),
     re.compile("^:(pa)\s+(.*)$"),
     re.compile("^:(v)\s+(.*)$"),
     re.compile("^:(q)\s+(.*?)\s+(.*)$"),
@@ -148,7 +145,6 @@ empty_line_re = re.compile("^\s*$")
 comment_re = re.compile("^(\s*)#(.*)$")
 python_re = re.compile("^(\$.*)$")
 command_re = re.compile("^:(.*)$")
-# label_or_nvl_re = re.compile("^:(:.*?|nvl):?$")
 
 ##-----------------------------------------------------------------------------
 ## Helper Classes
@@ -256,8 +252,6 @@ class _Logger(object):
         else:
             self.log_save_level = LOGLEVEL.INFO
             self.log_display_level = LOGLEVEL.INFO
-
-        # self.log_display_level = self.log_save_level + 1
 
         self.__errors = 0
         self.__warnings = 0
@@ -530,15 +524,6 @@ def character_regex(match, replace):
     _m = re.compile('^'+_rep+'\s(.*)')
     state["known_character_rep"][_m] = (replace, ' "{}"')
 
-
-# def build_regex(match, replace):
-#     log("Building replacement regex: {} = {}".format(match,
-#         replace), LOGLEVEL.DEBUG)
-#     _rep = regex_prep(match)
-#     log("Regex result: {}".format(_rep), LOGLEVEL.DEBUG)
-#     _m = re.compile('^'+_rep+'\s*(.*)?')
-#     state["known_replacements"][_m] = (replace, ' "{}"')
-
 ##-----------------------------------------------------------------------------
 ## File manager
 ##-----------------------------------------------------------------------------
@@ -693,19 +678,6 @@ def parse_command(command, matches, _re):
     def _write_play(channel, sound):
         write_line("play "+channel+' '+sound)
 
-    # # ^:(l)\s*(.*?)=\s?(.*)$
-    # if command == "regex":
-    #     log("command: New replacement", LOGLEVEL.DEBUG)
-    #     build_regex(matches[0], matches[1])
-
-    # # ^:(l:)$
-    # elif command == "regex:":
-    #     log("command: replacement block", LOGLEVEL.DEBUG)
-    #     log("New indent is now expected", LOGLEVEL.VERB)
-    #     _f["new_indent"] = 1
-    #     _f["command_block"] = True
-    #     _f["command"] = ('regex', _re)
-
     # ^:(line)\s*(.*?)=\s?(.*)$
     if command == "line":
         log("command: New line replacement", LOGLEVEL.DEBUG)
@@ -734,8 +706,6 @@ def parse_command(command, matches, _re):
 
     # ^:(:)\s+(\.?[\w\.]*)$
     # TODO: Move all of this to another function and fix it up
-    # TODO: Delay label writing until actuall content is output so that parent
-    #       labels aren't called unessisarily in the mater file
     # TODO: Integrate auto_return for labels with content.
     elif command == ":":
         log("command: Label", LOGLEVEL.DEBUG)
@@ -800,11 +770,6 @@ def parse_command(command, matches, _re):
     elif command == "ps":
         log("command: Play sound", LOGLEVEL.DEBUG)
         _write_play("sound", matches[0])
-
-    # ^:(pv)\s+(.*)$
-    elif command == "pv":
-        log("command: Play voice", LOGLEVEL.DEBUG)
-        _write_play("voice", matches[0])
 
     # ^:(pa)\s+(.*)$
     elif command == "pa":
@@ -880,7 +845,6 @@ def parse_command(command, matches, _re):
         log("New indent is now expected", LOGLEVEL.VERB)
         _f["new_indent"] = 1
         state["is_nvl_mode"] = True
-        # state["next_indent_is_ignored"] = True
 
     # ^:(clear)$
     elif command == "clear":

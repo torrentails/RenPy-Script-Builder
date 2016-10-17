@@ -132,8 +132,6 @@ LineOrder()
         :pm "music.ogg" fadeout 1.0
         # TEST: play sound
         :ps ["sound.ogg", "sound_1.ogg"]
-        # TEST: play voice
-        :pv "voice.ogg"
         # TEST: play audio
         :pa "audio.ogg"
 
@@ -153,7 +151,7 @@ LineOrder()
     ::.choice:
         # TEST: choice
         :choice:
-            This is accompanying narration
+            This is the accompanying narration
             This is the first choice:
                 # TEST: jump
                 :j flow_control._choice_01
