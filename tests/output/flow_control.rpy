@@ -1,7 +1,7 @@
 label flow_control:
     label .choice:
         menu:
-            "This is accompanying narration"
+            "This is the accompanying narration"
             "This is the first choice":
                 jump flow_control._choice_01
             "This is the second choice":

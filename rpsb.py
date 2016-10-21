@@ -676,7 +676,8 @@ def parse_command(command, matches, _re):
     _f = state['file_chain'][-1]
 
     def _write_play(channel, sound):
-        write_line("play "+channel+' '+sound)
+        write_line("play "+channel+' '+ \
+            sound.replace(r'\"', '"').replace(r"\'", "'"))
 
     # ^:(line)\s*(.*?)=\s?(.*)$
     if command == "line":
@@ -779,12 +780,13 @@ def parse_command(command, matches, _re):
     # ^:(v)\s+(.*)$
     elif command == "v":
         log("command: Voice", LOGLEVEL.DEBUG)
-        write_line("voice "+matches[0])
+        write_line("voice "+matches[0].replace(r'\"', '"').replace(r"\'", "'"))
 
     # ^:(q)\s+(.*?)\s+(.*)$
     elif command == "q":
         log("command: Queue", LOGLEVEL.DEBUG)
-        write_line("queue "+matches[0]+' '+matches[1])
+        write_line("queue "+matches[0]+' '+ \
+            matches[1].replace(r'\"', '"').replace(r"\'", "'"))
 
     # ^:(stop)\s*(.*)?$
     elif command == "stop":

@@ -2,9 +2,9 @@
     output_path = ./output
     create_flow_control_file = False
 
-:l >> {+} = scene {}\nwith time_skip_transition
+:line >> {+} = scene {}\nwith time_skip_transition
 
-:p:
+:character:
     a: = ADAM
     b: = BETH
     c: = CHARLES
@@ -45,7 +45,7 @@
     c: The name's Charles!
     c: I work for Big Name Publishings and we're very interested in the work you and your team have done making visual novels.
 
-    :m:
+    :choice:
         c: We'd like to offer you a lucrative publishing deal for your upcoming games.
         Accept the offer:
             :j .accept
