@@ -188,13 +188,13 @@ class Current_Line_Str(object):
         return '<init> '
 
     def __add__(self, other):
-        if issubclass(type(other), (str, unicode)):
+        if issubclass(type(other), (str, str)):
             return str(self)+other
         raise TypeError("unsupported operand type(s) for +:"
             " 'str' and '{}'".format(type(other).__name__))
 
     def __radd__(self, other):
-        if issubclass(type(other), (str, unicode)):
+        if issubclass(type(other), (str, str)):
             return other+str(self)
         raise TypeError("unsupported operand type(s) for +:"
             " '{}' and 'str'".format(type(other).__name__))
@@ -208,13 +208,13 @@ class Indent_Level_Str(object):
         return '    '*(state["file_chain"][-1]["cur_indent"]-1)
 
     def __add__(self, other):
-        if issubclass(type(other), (str, unicode)):
+        if issubclass(type(other), (str, str)):
             return str(self)+other
         raise TypeError("unsupported operand type(s) for +:"
             " 'str' and '{}'".format(type(other).__name__))
 
     def __radd__(self, other):
-        if issubclass(type(other), (str, unicode)):
+        if issubclass(type(other), (str, str)):
             return other+str(self)
         raise TypeError("unsupported operand type(s) for +:"
             " '{}' and 'str'".format(type(other).__name__))
